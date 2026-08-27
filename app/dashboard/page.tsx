@@ -1,8 +1,9 @@
 // app/dashboard/page.tsx
 "use client";
-import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Suspense, useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatNaira } from "@/lib/currency";
 
 interface Order {
@@ -30,8 +31,22 @@ interface Swap {
 }
 
 export default function UserDashboard() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardLoading() {
+  return <div className="flex min-h-screen items-center justify-center bg-[#161818] text-xl text-[#a9afa9]">Loading your dashboard...</div>;
+}
+
+function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const showTradePrompt = searchParams.get("welcome") === "1";
   
   const [wallet, setWallet] = useState<Wallet>({ fiatBalance: 0, cryptoBalance: 0 });
   const [orders, setOrders] = useState<Order[]>([]);
@@ -186,7 +201,7 @@ export default function UserDashboard() {
             </button>
           </div>
           
-          <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30">
+          <div id="crypto-balance" className="scroll-mt-4 rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30">
             <p className="mb-1 text-sm font-medium text-[#a9afa9]">Crypto holdings (USDT)</p>
             <h2 className="text-4xl font-bold">{wallet.cryptoBalance.toFixed(4)} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
             <p className="mt-3 text-sm leading-6 text-[#c8ccc7]">Crypto is held separately. Swap USDT to Naira first, then request a Naira payout.</p>
@@ -269,6 +284,29 @@ export default function UserDashboard() {
           )}
         </div>
       </div>
+
+      {showTradePrompt && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 backdrop-blur-sm sm:items-center sm:justify-center" role="dialog" aria-modal="true" aria-labelledby="trade-choice-heading">
+          <div className="w-full max-w-lg rounded-3xl border border-[#f4f3ee]/15 bg-[#202323] p-6 shadow-2xl shadow-black/60 sm:p-8">
+            <p className="text-xs font-semibold tracking-[0.16em] text-[#c6f65c]">WELCOME TO FEXEX</p>
+            <h2 id="trade-choice-heading" className="mt-3 text-3xl font-semibold text-[#f4f3ee]">What would you like to do?</h2>
+            <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Choose a service to begin. You can always come back to your dashboard.</p>
+
+            <div className="mt-7 grid gap-3">
+              <Link href="/sell-giftcard" className="rounded-2xl border border-[#c6f65c]/40 bg-[#c6f65c]/10 p-5 transition hover:border-[#c6f65c] hover:bg-[#c6f65c]/20">
+                <span className="block text-lg font-bold text-[#f4f3ee]">Sell a gift card</span>
+                <span className="mt-1 block text-sm leading-6 text-[#c8ccc7]">Submit your card and receive a Naira value for approval.</span>
+              </Link>
+              <Link href="/dashboard#crypto-balance" className="rounded-2xl border border-[#d6c7ff]/40 bg-[#d6c7ff]/10 p-5 transition hover:border-[#d6c7ff] hover:bg-[#d6c7ff]/20">
+                <span className="block text-lg font-bold text-[#f4f3ee]">Exchange crypto to cash</span>
+                <span className="mt-1 block text-sm leading-6 text-[#c8ccc7]">Convert your available USDT to Naira at today&apos;s rate.</span>
+              </Link>
+            </div>
+
+            <Link href="/dashboard" className="mt-6 inline-block text-sm font-semibold text-[#a9afa9] transition hover:text-[#f4f3ee]">Maybe later</Link>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

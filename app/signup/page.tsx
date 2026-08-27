@@ -49,7 +49,7 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/dashboard?welcome=1");
     } catch {
       setError("A network error occurred. Please try again.");
     } finally {
