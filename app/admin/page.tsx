@@ -1,6 +1,7 @@
 // app/admin/page.tsx
 "use client";
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -27,28 +28,32 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (status === "loading") return;
-    
-    if (status === "unauthenticated" || session?.user?.role !== "ADMIN") {
-      router.push("/login");
-    } else {
-      fetchOrders();
-    }
-  }, [status, session, router]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/orders");
       const data = await res.json();
       setOrders(data);
-    } catch (err) {
-      console.error("Failed to fetch orders", err);
+    } catch (error) {
+      console.error("Failed to fetch orders", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (status === "unauthenticated" || session?.user?.role !== "ADMIN") {
+      router.push("/login");
+    } else {
+      void fetch("/api/admin/orders")
+        .then((res) => res.json())
+        .then(setOrders)
+        .catch((error) => console.error("Failed to fetch orders", error))
+        .finally(() => setLoading(false));
+    }
+  }, [status, session, router]);
 
   const handleAction = async (orderId: string, action: "APPROVE" | "REJECT") => {
     setActionLoading(orderId);
@@ -65,7 +70,7 @@ export default function AdminDashboard() {
       } else {
         alert("❌ Failed to process order.");
       }
-    } catch (err) {
+    } catch {
       alert("❌ Network error.");
     } finally {
       setActionLoading(null);
@@ -125,9 +130,12 @@ export default function AdminDashboard() {
                   {order.giftCardImage && (
                     <div className="mb-3">
                       <p className="text-xs font-semibold text-gray-500 mb-1">UPLOADED IMAGE:</p>
-                      <img 
+                      <Image
                         src={order.giftCardImage} 
                         alt="Gift Card" 
+                        width={320}
+                        height={180}
+                        unoptimized
                         className="max-w-xs rounded-lg border border-gray-300 shadow-sm" 
                       />
                     </div>

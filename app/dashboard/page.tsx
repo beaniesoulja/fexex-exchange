@@ -33,24 +33,18 @@ export default function UserDashboard() {
     if (status === "unauthenticated") {
       router.push("/login");
     } else {
-      fetchProfile();
+      void fetch("/api/user/profile")
+        .then(async (res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) {
+            setWallet(data.wallet);
+            setOrders(data.orders);
+          }
+        })
+        .catch((error) => console.error("Failed to fetch profile", error))
+        .finally(() => setLoading(false));
     }
   }, [status, router]);
-
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch("/api/user/profile");
-      if (res.ok) {
-        const data = await res.json();
-        setWallet(data.wallet);
-        setOrders(data.orders);
-      }
-    } catch (err) {
-      console.error("Failed to fetch profile", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (status === "loading" || loading) {
     return <div className="min-h-screen flex items-center justify-center text-xl text-gray-600">Loading your dashboard...</div>;

@@ -1,6 +1,7 @@
 // app/page.tsx
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -69,7 +70,7 @@ export default function Home() {
       } else {
         setMessage(`❌ Error: ${data.error}`);
       }
-    } catch (err) {
+    } catch {
       setMessage("❌ Network error. Please try again.");
     } finally {
       setLoading(false);
@@ -129,7 +130,7 @@ export default function Home() {
               className="w-full p-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
             />
             {imagePreview && (
-              <img src={imagePreview} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-lg border border-gray-200" />
+              <Image src={imagePreview} alt="Preview" width={448} height={128} unoptimized className="mt-2 h-32 w-full rounded-lg border border-gray-200 object-cover" />
             )}
           </div>
 
