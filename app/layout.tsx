@@ -4,8 +4,8 @@ import "./globals.css";
 import { Providers } from "./providers"; // Import the Providers
 
 export const metadata: Metadata = {
-  title: "Crypto & Giftcard Exchange",
-  description: "Secure OTC Exchange",
+  title: "FEXEX | Crypto & Giftcard Exchange",
+  description: "Trade crypto and gift cards for Naira with FEXEX.",
 };
 
 export default function RootLayout({

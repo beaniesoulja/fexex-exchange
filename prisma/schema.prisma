@@ -26,43 +26,89 @@ enum OrderStatus {
   REJECTED
 }
 
+enum SwapStatus {
+  COMPLETED
+}
+
+enum PayoutStatus {
+  INITIATED
+}
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String
-  role          Role      @default(USER)
-  kycVerified   Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  
-  wallet        Wallet?
-  orders        Order[]
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  passwordHash        String
+  cryptoWalletAddress String?
+  role                Role     @default(USER)
+  kycVerified         Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  wallet  Wallet?
+  orders  Order[]
+  swaps   Swap[]
+  payouts Payout[]
 }
 
 model Wallet {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
-  fiatBalance   Float    @default(0.0)
-  cryptoBalance Float    @default(0.0)
+  id            String @id @default(cuid())
+  userId        String @unique
+  user          User   @relation(fields: [userId], references: [id])
+  fiatBalance   Float  @default(0.0)
+  cryptoBalance Float  @default(0.0)
 }
 
 model Order {
-  id            String      @id @default(cuid())
-  userId        String
-  user          User        @relation(fields: [userId], references: [id])
-  
-  type          OrderType
-  status        OrderStatus @default(PENDING)
-  
-  amount        Float
-  rate          Float
-  totalValue    Float
-  
-  giftCardBrand String?
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type   OrderType
+  status OrderStatus @default(PENDING)
+
+  amount     Float
+  rate       Float
+  totalValue Float
+
+  giftCardBrand   String?
   giftCardCountry String?
-  giftCardImage String?
-  giftCardCode  String?
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  giftCardImage   String?
+  giftCardCode    String?
+
+  payout Payout?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payout {
+  id                String       @id @default(cuid())
+  orderId           String       @unique
+  order             Order        @relation(fields: [orderId], references: [id])
+  userId            String
+  user              User         @relation(fields: [userId], references: [id])
+  walletAddress     String
+  nairaAmount       Float
+  cryptoAmount      Float
+  exchangeRate      Float
+  status            PayoutStatus @default(INITIATED)
+  providerReference String?
+  providerResponse  String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model Swap {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  asset        String     @default("USDT")
+  cryptoAmount Float
+  nairaAmount  Float
+  rate         Float
+  status       SwapStatus @default(COMPLETED)
+  createdAt    DateTime   @default(now())
+
+  @@index([userId, createdAt])
 }

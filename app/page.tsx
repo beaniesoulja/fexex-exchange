@@ -1,164 +1,136 @@
-// app/page.tsx
-"use client";
-import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { giftCards } from "@/lib/gift-cards";
+
+const navigation = [
+  { label: "Home", href: "#home" },
+  { label: "Sell Crypto", href: "#sell-crypto" },
+  { label: "Sell Giftcard", href: "/sell-giftcard" },
+  { label: "Dashboard", href: "/dashboard" },
+];
 
 export default function Home() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-
-  // Force login to access the sell form
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    }
-  }, [status, router]);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Image is too large. Please choose an image under 2MB.");
-        e.target.value = "";
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageBase64(reader.result as string);
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    const formData = new FormData(e.currentTarget);
-    const payload = {
-      userId: session?.user?.id, // <-- NOW USES THE REAL LOGGED-IN USER ID
-      brand: formData.get("brand"),
-      country: formData.get("country"),
-      amount: Number(formData.get("amount")),
-      cardCode: formData.get("cardCode"),
-      cardPin: formData.get("cardPin"),
-      imageBase64: imageBase64,
-    };
-
-    try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setMessage(`✅ Success! Order ${data.orderId} created. Expected payout: $${data.expectedPayout}`);
-        (e.target as HTMLFormElement).reset();
-        setImagePreview(null);
-        setImageBase64(null);
-      } else {
-        setMessage(`❌ Error: ${data.error}`);
-      }
-    } catch {
-      setMessage("❌ Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (status === "loading") {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">Sell Gift Card</h1>
-            <p className="text-gray-500 text-sm">Logged in as: {session?.user?.email}</p>
-          </div>
-          <button 
-            onClick={() => router.push("/dashboard")}
-            className="text-sm text-blue-600 hover:underline"
+    <main id="home" className="fexex-surface min-h-screen overflow-hidden bg-[#161818] text-[#f4f3ee]">
+
+      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
+        <Link href="#home" aria-label="Fexex home">
+          <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} priority className="h-9 w-auto" />
+        </Link>
+
+        <nav
+          aria-label="Main navigation"
+          className="order-3 flex w-full items-center justify-center gap-4 pt-4 text-xs font-medium text-[#a9afa9] sm:gap-6 sm:text-sm md:order-none md:w-auto md:gap-7 md:pt-0"
+        >
+          {navigation.map((item) => (
+            <Link key={item.label} href={item.href} className="transition hover:text-[#c6f65c]">
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-3">
+          <Link href="/login" className="text-sm font-semibold text-[#f4f3ee] transition hover:text-[#c6f65c]">
+            Log in
+          </Link>
+          <Link
+            href="/signup"
+            className="rounded-full bg-[#c6f65c] px-4 py-2.5 text-sm font-bold text-[#161818] transition hover:bg-[#d9ff86] sm:px-5"
           >
-            View Dashboard →
-          </button>
+            Start Trading
+          </Link>
+        </div>
+      </header>
+
+      <section className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-5 pb-24 pt-16 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:pb-32 lg:pt-24">
+        <div>
+          <p className="mb-5 inline-flex rounded-full border border-[#c6f65c]/25 bg-[#c6f65c]/10 px-3 py-1 text-xs font-semibold tracking-wide text-[#d8ff96]">
+            FEXEX / VALUE IN MOTION
+          </p>
+          <h1 className="max-w-2xl text-5xl font-semibold leading-[1.03] tracking-tight sm:text-6xl">
+            Trade value.<br /><span className="fexex-serif text-[#d6c7ff]">Feel certain.</span>
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
+            A clearer way to move the value you already have into Naira. No noisy guesswork—just your next move.
+          </p>
+          <div className="mt-9 flex flex-wrap gap-4">
+            <Link href="/signup" className="rounded-full bg-[#c6f65c] px-6 py-3.5 font-bold text-[#161818] transition hover:bg-[#d9ff86]">
+              Start Trading
+            </Link>
+            <Link href="/sell-giftcard" className="rounded-full border border-[#f4f3ee]/20 px-6 py-3.5 font-semibold text-[#f4f3ee] transition hover:border-[#c6f65c]/60 hover:bg-[#c6f65c]/10">
+              Explore services
+            </Link>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-              <select name="brand" required className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="iTunes">iTunes</option>
-                <option value="Amazon">Amazon</option>
-                <option value="Steam">Steam</option>
-              </select>
+        <div className="relative rounded-[2rem] border border-[#f4f3ee]/10 bg-[#202323] p-5 shadow-2xl shadow-black/40 before:absolute before:-right-12 before:top-12 before:-z-10 before:h-48 before:w-48 before:rounded-full before:border before:border-[#d6c7ff]/30 sm:p-7">
+          <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-5 sm:p-6">
+            <div className="flex items-center justify-between text-sm text-[#a9afa9]">
+              <span>Available balance</span>
+              <span className="rounded-full bg-[#c6f65c]/10 px-3 py-1 text-xs font-semibold text-[#d8ff96]">Clear rate</span>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-              <select name="country" required className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="US">US</option>
-                <option value="UK">UK</option>
-              </select>
+            <p className="mt-3 text-4xl font-semibold">₦2,480,000</p>
+            <div className="mt-7 rounded-xl bg-[#f4f3ee]/5 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#a9afa9]">You send</span>
+                <span className="font-semibold">Bitcoin</span>
+              </div>
+              <div className="mt-3 flex items-end justify-between">
+                <span className="text-2xl font-semibold">0.025 BTC</span>
+                <span className="text-sm font-medium text-[#d8ff96]">≈ ₦2,480,000</span>
+              </div>
+            </div>
+            <div className="mt-3 rounded-xl bg-[#c6f65c] p-4 text-[#161818]">
+              <div className="flex items-center justify-between text-sm font-medium"><span>You receive</span><span>Naira</span></div>
+              <p className="mt-2 text-2xl font-bold">₦2,480,000</p>
             </div>
           </div>
+          <div className="mt-5 grid grid-cols-3 gap-3 text-center text-xs text-[#a9afa9]">
+            <span>Secure trades</span><span>Clear pricing</span><span>Quick support</span>
+          </div>
+        </div>
+      </section>
 
+      <section id="sell-crypto" className="relative z-10 border-y border-[#f4f3ee]/10 bg-[#1a1d1d]">
+        <div className="mx-auto grid max-w-6xl gap-6 px-5 py-16 sm:px-8 md:grid-cols-2">
+          <article className="rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-8 transition hover:-translate-y-1 hover:border-[#d6c7ff]/50">
+            <p className="text-sm font-semibold text-[#d6c7ff]">SELL CRYPTO</p>
+            <h2 className="mt-3 text-3xl font-semibold">Your crypto, your move.</h2>
+            <p className="mt-4 leading-7 text-[#c8ccc7]">Exchange supported digital assets with a process that keeps every step easy to understand.</p>
+            <Link href="/login" className="mt-7 inline-block font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Sell Crypto →</Link>
+          </article>
+          <article id="sell-giftcard" className="rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-8 transition hover:-translate-y-1 hover:border-[#c6f65c]/50">
+            <p className="text-sm font-semibold text-[#c6f65c]">SELL GIFTCARD</p>
+            <h2 className="mt-3 text-3xl font-semibold">Unlock the value in your cards.</h2>
+            <p className="mt-4 leading-7 text-[#c8ccc7]">Submit eligible gift cards with a Naira value and receive your approved payout in ₦.</p>
+            <Link href="/sell-giftcard" className="mt-7 inline-block font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Sell Giftcard →</Link>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="gift-cards-heading" className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+        <div className="grid items-end gap-6 md:grid-cols-[1fr_auto]">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Card Amount ($)</label>
-            <input type="number" name="amount" placeholder="e.g., 100" required min="1" className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+            <p className="text-sm font-semibold text-[#c6f65c]">SUPPORTED GIFT CARDS</p>
+            <h2 id="gift-cards-heading" className="mt-3 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">The cards you know. A clearer way to move their value.</h2>
+            <p className="mt-4 max-w-xl leading-7 text-[#a9afa9]">Choose from nine card brands at the start of your trade. We will guide you through the details from there.</p>
           </div>
+          <Link href="/sell-giftcard" className="inline-flex w-fit items-center rounded-full border border-[#f4f3ee]/20 px-5 py-3 text-sm font-semibold transition hover:border-[#c6f65c] hover:bg-[#c6f65c]/10">Sell a gift card <span className="ml-3 text-[#c6f65c]">→</span></Link>
+        </div>
+        <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-label="Supported gift card brands">
+          {giftCards.map((giftCard) => (
+            <li key={giftCard.code} className="group rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4 transition hover:-translate-y-1 hover:border-[#c6f65c]/50">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#c6f65c]/10 text-[10px] font-bold tracking-wide text-[#d8ff96] group-hover:bg-[#c6f65c] group-hover:text-[#161818]">{giftCard.code}</span>
+              <p className="mt-8 text-sm font-semibold text-[#f4f3ee]">{giftCard.name}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Card Image (Max 2MB)</label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleImageChange} 
-              className="w-full p-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
-            />
-            {imagePreview && (
-              <Image src={imagePreview} alt="Preview" width={448} height={128} unoptimized className="mt-2 h-32 w-full rounded-lg border border-gray-200 object-cover" />
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Card Code (Optional)</label>
-            <input type="text" name="cardCode" placeholder="Enter card number" className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Card PIN (Optional)</label>
-            <input type="text" name="cardPin" placeholder="Enter PIN / Scratch code" className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {loading ? "Processing..." : "Submit Order"}
-          </button>
-        </form>
-
-        {message && (
-          <div className={`mt-4 p-3 rounded-lg text-sm ${message.includes("Success") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-            {message}
-          </div>
-        )}
-      </div>
+      <footer className="relative z-10 mx-auto flex max-w-6xl flex-col gap-3 px-5 py-8 text-sm text-[#777a75] sm:flex-row sm:items-center sm:justify-between sm:px-8">
+        <span>© {new Date().getFullYear()} FEXEX. Value in motion.</span>
+        <Link href="/dashboard" className="transition hover:text-[#c6f65c]">Go to Dashboard →</Link>
+      </footer>
     </main>
   );
 }

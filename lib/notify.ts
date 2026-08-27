@@ -25,8 +25,8 @@ export async function notifyAdmin({
     "New gift card order",
     `Customer: ${userEmail}`,
     `Card: ${brand} (${country})`,
-    `Amount: $${amount}`,
-    `Expected payout: $${totalValue.toFixed(2)}`,
+    `Card value: ${formatNaira(amount)}`,
+    `Expected payout: ${formatNaira(totalValue)}`,
   ].join("\n");
 
   const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -39,3 +39,4 @@ export async function notifyAdmin({
     throw new Error(`Telegram notification failed with status ${response.status}`);
   }
 }
+import { formatNaira } from "@/lib/currency";

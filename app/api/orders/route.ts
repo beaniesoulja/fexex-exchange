@@ -2,48 +2,48 @@
 import { notifyAdmin } from '@/lib/notify';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // 1. Extract the imageBase64 from the frontend payload
-    const { userId, brand, country, amount, cardCode, cardPin, imageBase64 } = body;
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Please log in to submit a gift card." }, { status: 401 });
+    }
 
-    // 2. Auto-create user if they don't exist
-    const user = await prisma.user.upsert({
-      where: { id: userId },
-      update: {},
-      create: {
-        id: userId,
-        email: `test_${userId}@example.com`,
-        passwordHash: "dummy_hash_for_testing",
-        role: "USER",
-        kycVerified: true,
-      },
-    });
+    const { brand, country, amount, cardCode, cardPin, imageBase64 } = body;
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+    if (!user) {
+      return NextResponse.json({ error: "Your Fexex account could not be found." }, { status: 404 });
+    }
 
-    // 3. Define your buy rates
+    // Naira-only gift card payout percentages.
     const rates: Record<string, number> = {
-      "iTunes_US": 0.85,
-      "Amazon_US": 0.90,
-      "Steam_US": 0.80
+      "iTunes_NG": 0.85,
+      "Amazon_NG": 0.90,
+      "Steam_NG": 0.80
     };
 
     const rateKey = `${brand}_${country}`;
     const rate = rates[rateKey];
 
     if (!rate) {
-      return NextResponse.json({ error: "We do not currently buy this card type." }, { status: 400 });
+      return NextResponse.json({ error: "We currently support Naira payouts for iTunes, Amazon, and Steam gift cards." }, { status: 400 });
     }
 
-    const numericAmount = Number(amount);
-    const totalValue = numericAmount * rate;
+    const numericAmount = Math.round(Number(amount));
+    if (!Number.isFinite(numericAmount) || numericAmount < 1) {
+      return NextResponse.json({ error: "Enter a valid gift card value in Naira." }, { status: 400 });
+    }
+    const totalValue = Math.round(numericAmount * rate);
 
     // 4. Save the order AND the image to the database
     const order = await prisma.order.create({
       data: {
-        userId: userId, 
+        userId: user.id,
         type: 'SELL_GIFTCARD',
         status: 'PENDING',
         amount: numericAmount,
@@ -71,7 +71,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       message: "Order submitted successfully! Admin is reviewing.", 
       orderId: order.id,
-      expectedPayout: totalValue
+      expectedPayout: totalValue,
+      currency: "NGN",
     }, { status: 201 });
 
   } catch (error: unknown) {

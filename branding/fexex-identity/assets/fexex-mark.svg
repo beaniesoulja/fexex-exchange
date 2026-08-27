@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Fexex forward mark</title>
+  <desc id="desc">A motion lime rounded tile with two forward angled ink strokes.</desc>
+  <rect width="128" height="128" rx="34" fill="#C6F65C"/>
+  <path d="M28 42h57l-12 15H39zM52 69h48L88 85H62z" fill="#161818"/>
+</svg>

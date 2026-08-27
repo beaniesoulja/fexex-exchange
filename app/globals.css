@@ -1,26 +1,46 @@
+@import "@fontsource-variable/sora/wght.css";
+@import "@fontsource/dm-serif-display/400.css";
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #161818;
+  --foreground: #f4f3ee;
+  --fexex-ink: #161818;
+  --fexex-paper: #f4f3ee;
+  --fexex-lime: #c6f65c;
+  --fexex-lilac: #d6c7ff;
+  --fexex-moss: #777a75;
+  --fexex-panel: #202323;
+  --fexex-panel-quiet: #1a1d1d;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: "Sora Variable", Sora, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Sora Variable", Sora, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: -0.015em;
+}
+
+::selection {
+  background: var(--fexex-lime);
+  color: var(--fexex-ink);
+}
+
+.fexex-serif {
+  font-family: "DM Serif Display", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.04em;
+}
+
+.fexex-surface {
+  background-image:
+    radial-gradient(circle at 78% -8%, rgb(214 199 255 / 18%), transparent 34rem),
+    radial-gradient(circle at 4% 26%, rgb(198 246 92 / 8%), transparent 24rem);
 }
