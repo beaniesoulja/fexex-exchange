@@ -124,7 +124,7 @@ function DashboardContent() {
         .catch((error) => console.error("Failed to refresh dashboard data", error));
     };
 
-    const interval = window.setInterval(refreshLiveData, 30_000);
+    const interval = window.setInterval(refreshLiveData, 3_000);
     return () => window.clearInterval(interval);
   }, [status]);
 

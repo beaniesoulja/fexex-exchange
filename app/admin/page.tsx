@@ -156,7 +156,7 @@ export default function AdminDashboard() {
         });
     };
 
-    const interval = window.setInterval(refreshLiveData, 30_000);
+    const interval = window.setInterval(refreshLiveData, 3_000);
     return () => window.clearInterval(interval);
   }, [status, session]);
 
