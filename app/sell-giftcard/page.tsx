@@ -11,7 +11,7 @@ import { formatNaira } from "@/lib/currency";
 interface GiftCardOption {
   name: string;
   code: string;
-  payoutPercent: number;
+  nairaPayoutPerThousand: number;
   available: boolean;
 }
 
@@ -60,7 +60,7 @@ export default function SellGiftcardPage() {
   const selectedGiftCard = giftCardOptions.find((giftCard) => giftCard.name === selectedBrand);
   const numericAmount = Number(amount);
   const estimatedPayout = selectedGiftCard?.available && Number.isFinite(numericAmount) && numericAmount > 0
-    ? Math.round(numericAmount * (selectedGiftCard.payoutPercent / 100))
+    ? Math.round((numericAmount / 1000) * selectedGiftCard.nairaPayoutPerThousand)
     : null;
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +163,7 @@ export default function SellGiftcardPage() {
                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d6c7ff]/15 text-[10px] font-bold tracking-wide text-[#e5dcff]">{giftCard.code}</span>
                         <span className="mt-5 block text-sm font-semibold text-[#f4f3ee]">{giftCard.name}</span>
                         <span className={`mt-1 block text-xs font-medium ${giftCard.available ? "text-[#c6f65c]" : "text-[#777a75]"}`}>
-                          {giftCard.available ? `${giftCard.payoutPercent}% payout` : "Currently paused"}
+                          {giftCard.available ? `${formatNaira(giftCard.nairaPayoutPerThousand)} / ₦1,000` : "Currently paused"}
                         </span>
                       </button>
                     );
@@ -180,7 +180,7 @@ export default function SellGiftcardPage() {
                 <p className="text-xs font-semibold tracking-wide text-[#d8ff96]">LIVE PAYOUT ESTIMATE</p>
                 {selectedGiftCard.available ? (
                   <>
-                    <p className="mt-2 text-sm text-[#d7dbd4]">{selectedGiftCard.name} pays {selectedGiftCard.payoutPercent}% of the submitted Naira value.</p>
+                    <p className="mt-2 text-sm text-[#d7dbd4]">{selectedGiftCard.name} pays {formatNaira(selectedGiftCard.nairaPayoutPerThousand)} for every ₦1,000 of card value.</p>
                     <p className="mt-2 text-2xl font-bold text-[#f4f3ee]">{estimatedPayout === null ? "Enter a card value" : formatNaira(estimatedPayout)}</p>
                   </>
                 ) : (

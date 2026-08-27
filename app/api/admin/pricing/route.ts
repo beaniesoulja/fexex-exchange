@@ -7,7 +7,7 @@ import { ensurePricingDefaults } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 const MAX_USD_TO_NAIRA_RATE = 10_000_000;
-const MAX_GIFT_CARD_PERCENT = 100;
+const MAX_GIFT_CARD_NAIRA_RATE = 1_000_000;
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -57,24 +57,24 @@ export async function PATCH(req: Request) {
 
     const allowedBrands = new Set<string>(giftCards.map((giftCard) => giftCard.name));
     const suppliedBrands = new Set<string>();
-    const updates: Array<{ brand: string; payoutPercent: number; isActive: boolean }> = [];
+    const updates: Array<{ brand: string; nairaPayoutPerThousand: number; isActive: boolean }> = [];
 
     for (const item of giftCardRates) {
       const brand = item?.brand;
-      const payoutPercent = Number(item?.payoutPercent);
+      const nairaPayoutPerThousand = Number(item?.nairaPayoutPerThousand);
       const isActive = item?.isActive;
       if (typeof brand !== "string" || !allowedBrands.has(brand) || suppliedBrands.has(brand)) {
         return NextResponse.json({ error: "Invalid gift card list." }, { status: 400 });
       }
-      if (!Number.isFinite(payoutPercent) || payoutPercent < 0 || payoutPercent > MAX_GIFT_CARD_PERCENT) {
-        return NextResponse.json({ error: `Enter a valid payout percentage for ${brand}.` }, { status: 400 });
+      if (!Number.isFinite(nairaPayoutPerThousand) || nairaPayoutPerThousand < 0 || nairaPayoutPerThousand > MAX_GIFT_CARD_NAIRA_RATE) {
+        return NextResponse.json({ error: `Enter a valid Naira payout rate for ${brand}.` }, { status: 400 });
       }
       if (typeof isActive !== "boolean") {
         return NextResponse.json({ error: `Choose whether Fexex is buying ${brand}.` }, { status: 400 });
       }
 
       suppliedBrands.add(brand);
-      updates.push({ brand, payoutPercent, isActive });
+      updates.push({ brand, nairaPayoutPerThousand, isActive });
     }
 
     await ensurePricingDefaults();
@@ -88,7 +88,11 @@ export async function PATCH(req: Request) {
         updates.map((rate) =>
           tx.giftCardRate.update({
             where: { brand: rate.brand },
-            data: { payoutPercent: rate.payoutPercent, isActive: rate.isActive },
+            data: {
+              nairaPayoutPerThousand: rate.nairaPayoutPerThousand,
+              payoutPercent: rate.nairaPayoutPerThousand / 10,
+              isActive: rate.isActive,
+            },
           }),
         ),
       );

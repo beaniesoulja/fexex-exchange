@@ -27,8 +27,8 @@ export async function POST(req: Request) {
 
     await ensurePricingDefaults();
     const giftCardRate = await prisma.giftCardRate.findUnique({ where: { brand } });
-    const payoutPercent = giftCardRate?.payoutPercent ?? 0;
-    if (!giftCardRate?.isActive || payoutPercent <= 0) {
+    const nairaPayoutPerThousand = giftCardRate?.nairaPayoutPerThousand ?? 0;
+    if (!giftCardRate?.isActive || nairaPayoutPerThousand <= 0) {
       return NextResponse.json({ error: "This gift card is not currently available for Naira payouts." }, { status: 400 });
     }
 
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     if (!Number.isFinite(numericAmount) || numericAmount < 1) {
       return NextResponse.json({ error: "Enter a valid gift card value in Naira." }, { status: 400 });
     }
-    const rate = payoutPercent / 100;
+    const rate = nairaPayoutPerThousand / 1000;
     const totalValue = Math.round(numericAmount * rate);
 
     // Save the order and an activity record together, without recording card codes or PINs in the activity log.

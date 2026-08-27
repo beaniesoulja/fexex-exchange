@@ -134,6 +134,7 @@ model GiftCardRate {
   id             String   @id @default(cuid())
   brand          String   @unique
   payoutPercent  Float    @default(0)
+  nairaPayoutPerThousand Float @default(0)
   isActive       Boolean  @default(false)
   updatedAt      DateTime @updatedAt
 }

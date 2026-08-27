@@ -24,7 +24,7 @@ interface Order {
 interface GiftCardRate {
   id: string;
   brand: string;
-  payoutPercent: number;
+  nairaPayoutPerThousand: number;
   isActive: boolean;
 }
 
@@ -169,11 +169,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const updateGiftCardRate = (brand: string, payoutPercent: number) => {
+  const updateGiftCardRate = (brand: string, nairaPayoutPerThousand: number) => {
     setPricing((current) => current ? {
       ...current,
       giftCardRates: current.giftCardRates.map((rate) =>
-        rate.brand === brand ? { ...rate, payoutPercent } : rate,
+        rate.brand === brand ? { ...rate, nairaPayoutPerThousand } : rate,
       ),
     } : current);
   };
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           usdToNairaRate: pricing.usdToNairaRate,
-          giftCardRates: pricing.giftCardRates.map(({ brand, payoutPercent, isActive }) => ({ brand, payoutPercent, isActive })),
+          giftCardRates: pricing.giftCardRates.map(({ brand, nairaPayoutPerThousand, isActive }) => ({ brand, nairaPayoutPerThousand, isActive })),
         }),
       });
       const data = await res.json();
@@ -359,7 +359,7 @@ export default function AdminDashboard() {
             <div>
               <p className="text-xs font-semibold tracking-wide text-[#d6c7ff]">DAILY PRICING</p>
               <h2 id="pricing-heading" className="mt-1 text-2xl font-bold text-[#f4f3ee]">Trade rates</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a9afa9]">Set the USD / USDT to Naira rate and the payout percentage for every gift card. Changes apply only to new trades.</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a9afa9]">Set the USD / USDT to Naira rate and each gift card&apos;s Naira payout. Changes apply only to new trades.</p>
             </div>
           </div>
 
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
 
               <div>
                 <div className="mb-3 flex items-baseline justify-between gap-3">
-                  <h3 className="text-sm font-semibold text-[#f4f3ee]">Gift card payout rates</h3>
+                  <h3 className="text-sm font-semibold text-[#f4f3ee]">Gift card payout rates in Naira</h3>
                   <span className="text-xs text-[#a9afa9]">Toggle cards on only when buying</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -406,14 +406,14 @@ export default function AdminDashboard() {
                           type="number"
                           inputMode="decimal"
                           min="0"
-                          max="100"
-                          step="0.01"
+                          max="1000000"
+                          step="1"
                           required
-                          value={rate.payoutPercent}
+                          value={rate.nairaPayoutPerThousand}
                           onChange={(event) => updateGiftCardRate(rate.brand, Number(event.target.value))}
                           className="min-w-0 flex-1 rounded-lg border border-[#f4f3ee]/15 bg-[#202323] px-3 py-2 text-sm text-[#f4f3ee] outline-none focus:border-[#d6c7ff]"
                         />
-                        <span className="text-sm text-[#a9afa9]">%</span>
+                        <span className="text-xs text-[#a9afa9]">₦ / ₦1,000</span>
                       </span>
                     </label>
                   ))}
@@ -449,7 +449,7 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-sm text-[#a9afa9]">Rate: {order.rate}</p>
+                    <p className="text-sm text-[#a9afa9]">Rate: {formatNaira(order.rate * 1000)} / ₦1,000</p>
                     <p className="text-2xl font-bold text-[#c6f65c]">
                       Payout: {formatNaira(order.totalValue)}
                     </p>
