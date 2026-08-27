@@ -15,16 +15,17 @@ export async function GET() {
   try {
     await ensurePricingDefaults();
     const savedRates = await prisma.giftCardRate.findMany();
-    const ratesByBrand = new Map(savedRates.map((rate) => [rate.brand, rate.payoutPercent]));
+    const ratesByBrand = new Map(savedRates.map((rate) => [rate.brand, rate]));
 
     return NextResponse.json({
       currency: "NGN",
       giftCards: giftCards.map((giftCard) => {
-        const payoutPercent = ratesByBrand.get(giftCard.name) ?? 0;
+        const rate = ratesByBrand.get(giftCard.name);
+        const payoutPercent = rate?.payoutPercent ?? 0;
         return {
           ...giftCard,
           payoutPercent,
-          available: payoutPercent > 0,
+          available: rate?.isActive === true && payoutPercent > 0,
         };
       }),
     });

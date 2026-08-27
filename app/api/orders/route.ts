@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     await ensurePricingDefaults();
     const giftCardRate = await prisma.giftCardRate.findUnique({ where: { brand } });
     const payoutPercent = giftCardRate?.payoutPercent ?? 0;
-    if (payoutPercent <= 0) {
+    if (!giftCardRate?.isActive || payoutPercent <= 0) {
       return NextResponse.json({ error: "This gift card is not currently available for Naira payouts." }, { status: 400 });
     }
 

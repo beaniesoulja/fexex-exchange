@@ -57,20 +57,24 @@ export async function PATCH(req: Request) {
 
     const allowedBrands = new Set<string>(giftCards.map((giftCard) => giftCard.name));
     const suppliedBrands = new Set<string>();
-    const updates: Array<{ brand: string; payoutPercent: number }> = [];
+    const updates: Array<{ brand: string; payoutPercent: number; isActive: boolean }> = [];
 
     for (const item of giftCardRates) {
       const brand = item?.brand;
       const payoutPercent = Number(item?.payoutPercent);
+      const isActive = item?.isActive;
       if (typeof brand !== "string" || !allowedBrands.has(brand) || suppliedBrands.has(brand)) {
         return NextResponse.json({ error: "Invalid gift card list." }, { status: 400 });
       }
       if (!Number.isFinite(payoutPercent) || payoutPercent < 0 || payoutPercent > MAX_GIFT_CARD_PERCENT) {
         return NextResponse.json({ error: `Enter a valid payout percentage for ${brand}.` }, { status: 400 });
       }
+      if (typeof isActive !== "boolean") {
+        return NextResponse.json({ error: `Choose whether Fexex is buying ${brand}.` }, { status: 400 });
+      }
 
       suppliedBrands.add(brand);
-      updates.push({ brand, payoutPercent });
+      updates.push({ brand, payoutPercent, isActive });
     }
 
     await ensurePricingDefaults();
@@ -84,7 +88,7 @@ export async function PATCH(req: Request) {
         updates.map((rate) =>
           tx.giftCardRate.update({
             where: { brand: rate.brand },
-            data: { payoutPercent: rate.payoutPercent },
+            data: { payoutPercent: rate.payoutPercent, isActive: rate.isActive },
           }),
         ),
       );

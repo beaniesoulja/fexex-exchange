@@ -25,6 +25,7 @@ interface GiftCardRate {
   id: string;
   brand: string;
   payoutPercent: number;
+  isActive: boolean;
 }
 
 interface Pricing {
@@ -113,6 +114,15 @@ export default function AdminDashboard() {
     } : current);
   };
 
+  const toggleGiftCardBuying = (brand: string, isActive: boolean) => {
+    setPricing((current) => current ? {
+      ...current,
+      giftCardRates: current.giftCardRates.map((rate) =>
+        rate.brand === brand ? { ...rate, isActive } : rate,
+      ),
+    } : current);
+  };
+
   const savePricing = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!pricing) return;
@@ -125,7 +135,7 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           usdToNairaRate: pricing.usdToNairaRate,
-          giftCardRates: pricing.giftCardRates.map(({ brand, payoutPercent }) => ({ brand, payoutPercent })),
+          giftCardRates: pricing.giftCardRates.map(({ brand, payoutPercent, isActive }) => ({ brand, payoutPercent, isActive })),
         }),
       });
       const data = await res.json();
@@ -201,12 +211,24 @@ export default function AdminDashboard() {
               <div>
                 <div className="mb-3 flex items-baseline justify-between gap-3">
                   <h3 className="text-sm font-semibold text-[#f4f3ee]">Gift card payout rates</h3>
-                  <span className="text-xs text-[#a9afa9]">Set 0% to pause a card</span>
+                  <span className="text-xs text-[#a9afa9]">Toggle cards on only when buying</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {pricing.giftCardRates.map((rate) => (
                     <label key={rate.id} className="rounded-xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-3">
-                      <span className="block text-sm font-medium text-[#d7dbd4]">{rate.brand}</span>
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-[#d7dbd4]">{rate.brand}</span>
+                        <span className="flex items-center gap-2 text-xs font-semibold text-[#a9afa9]">
+                          Buying
+                          <input
+                            type="checkbox"
+                            checked={rate.isActive}
+                            onChange={(event) => toggleGiftCardBuying(rate.brand, event.target.checked)}
+                            className="peer sr-only"
+                          />
+                          <span aria-hidden="true" className="relative h-6 w-11 rounded-full bg-[#343a38] transition peer-checked:bg-[#c6f65c] after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-[#f4f3ee] after:transition peer-checked:after:translate-x-5" />
+                        </span>
+                      </span>
                       <span className="mt-2 flex items-center gap-2">
                         <input
                           type="number"

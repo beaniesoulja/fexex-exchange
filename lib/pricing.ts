@@ -31,6 +31,7 @@ export async function ensurePricingDefaults() {
         create: {
           brand: giftCard.name,
           payoutPercent: DEFAULT_GIFT_CARD_RATES[giftCard.name] ?? 0,
+          isActive: (DEFAULT_GIFT_CARD_RATES[giftCard.name] ?? 0) > 0,
         },
       }),
     ),
