@@ -102,6 +102,32 @@ function DashboardContent() {
     return () => window.clearInterval(interval);
   }, [status]);
 
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const refreshLiveData = () => {
+      void Promise.all([
+        fetch("/api/user/profile").then(async (res) => (res.ok ? res.json() : null)),
+        fetch("/api/swaps").then(async (res) => (res.ok ? res.json() : null)),
+      ])
+        .then(([profile, quote]) => {
+          if (profile) {
+            setWallet(profile.wallet);
+            setOrders(profile.orders);
+            setSwaps(profile.swaps ?? []);
+          }
+          if (quote) {
+            setSwapRate(quote.rate ?? null);
+            setSwapMinimum(quote.minimumAmount ?? 0.01);
+          }
+        })
+        .catch((error) => console.error("Failed to refresh dashboard data", error));
+    };
+
+    const interval = window.setInterval(refreshLiveData, 30_000);
+    return () => window.clearInterval(interval);
+  }, [status]);
+
   if (status === "loading" || loading) {
     return <div className="flex min-h-screen items-center justify-center bg-[#161818] text-xl text-[#a9afa9]">Loading your dashboard...</div>;
   }

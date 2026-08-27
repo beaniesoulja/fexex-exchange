@@ -87,19 +87,6 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [analyticsError, setAnalyticsError] = useState("");
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/orders");
-      const data = await res.json();
-      setOrders(data);
-    } catch (error) {
-      console.error("Failed to fetch orders", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const fetchAnalytics = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/analytics");
@@ -146,6 +133,33 @@ export default function AdminDashboard() {
     }
   }, [status, session, router]);
 
+  useEffect(() => {
+    if (status !== "authenticated" || session?.user?.role !== "ADMIN") return;
+
+    const refreshLiveData = () => {
+      void fetch("/api/admin/orders")
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to load orders");
+          return res.json();
+        })
+        .then(setOrders)
+        .catch((error) => console.error("Failed to refresh orders", error));
+      void fetch("/api/admin/analytics")
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to load analytics");
+          return res.json();
+        })
+        .then(setAnalytics)
+        .catch((error) => {
+          console.error("Failed to refresh analytics", error);
+          setAnalyticsError("We could not load user activity right now.");
+        });
+    };
+
+    const interval = window.setInterval(refreshLiveData, 30_000);
+    return () => window.clearInterval(interval);
+  }, [status, session]);
+
   const handleAction = async (orderId: string, action: "APPROVE" | "REJECT") => {
     setActionLoading(orderId);
     try {
@@ -157,6 +171,7 @@ export default function AdminDashboard() {
       
       if (res.ok) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
+        void fetchAnalytics();
         alert(`✅ ${action === "APPROVE" ? "USDT payout initiated" : "Order rejected"}!`);
       } else {
         const data = await res.json().catch(() => null);
@@ -233,10 +248,8 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <p className="break-all text-sm text-[#a9afa9]">Logged in as: {session?.user?.email}</p>
           </div>
-          <div className="flex w-full gap-3 sm:w-auto">
-            <button onClick={() => { void fetchOrders(); void fetchAnalytics(); }} className="font-semibold text-[#c6f65c] transition hover:text-[#d9ff86]">
-              🔄 Refresh
-            </button>
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+            <span className="text-xs text-[#a9afa9]">Updates automatically</span>
             <button 
               onClick={() => signOut({ callbackUrl: "/login" })} 
               className="flex-1 rounded-lg bg-[#2a2e2d] px-4 py-2 text-[#f4f3ee] transition hover:bg-[#343a38] sm:flex-none"
