@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderType {
+  BUY_CRYPTO
+  SELL_CRYPTO
+  SELL_GIFTCARD
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  role          Role      @default(USER)
+  kycVerified   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  
+  wallet        Wallet?
+  orders        Order[]
+}
+
+model Wallet {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  fiatBalance   Float    @default(0.0)
+  cryptoBalance Float    @default(0.0)
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  
+  type          OrderType
+  status        OrderStatus @default(PENDING)
+  
+  amount        Float
+  rate          Float
+  totalValue    Float
+  
+  giftCardBrand String?
+  giftCardCountry String?
+  giftCardImage String?
+  giftCardCode  String?
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
