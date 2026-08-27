@@ -2,15 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUsdToNairaRate } from "@/lib/pricing";
 
 const ASSET = "USDT";
 const MINIMUM_SWAP_AMOUNT = 0.01;
 const CRYPTO_PRECISION = 1_000_000;
-
-function getUsdtToNairaRate() {
-  const rate = Number(process.env.USDT_TO_NGN_RATE);
-  return Number.isFinite(rate) && rate > 0 ? rate : null;
-}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -18,13 +14,13 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rate = getUsdtToNairaRate();
+  const rate = await getUsdToNairaRate();
   return NextResponse.json({
     asset: ASSET,
     currency: "NGN",
     rate,
     minimumAmount: MINIMUM_SWAP_AMOUNT,
-    available: rate !== null,
+    available: true,
   });
 }
 
@@ -35,13 +31,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const rate = getUsdtToNairaRate();
-    if (rate === null) {
-      return NextResponse.json(
-        { error: "Crypto-to-Naira swaps are temporarily unavailable. Please try again later." },
-        { status: 503 },
-      );
-    }
+    const rate = await getUsdToNairaRate();
 
     const body = await req.json();
     const requestedAmount = Number(body.amount);

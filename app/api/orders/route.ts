@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { ensurePricingDefaults } from '@/lib/pricing';
 
 export async function POST(req: Request) {
   try {
@@ -20,24 +21,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Your Fexex account could not be found." }, { status: 404 });
     }
 
-    // Naira-only gift card payout percentages.
-    const rates: Record<string, number> = {
-      "iTunes_NG": 0.85,
-      "Amazon_NG": 0.90,
-      "Steam_NG": 0.80
-    };
+    if (typeof brand !== 'string' || country !== 'NG') {
+      return NextResponse.json({ error: "Choose a supported gift card for a Naira payout." }, { status: 400 });
+    }
 
-    const rateKey = `${brand}_${country}`;
-    const rate = rates[rateKey];
-
-    if (!rate) {
-      return NextResponse.json({ error: "We currently support Naira payouts for iTunes, Amazon, and Steam gift cards." }, { status: 400 });
+    await ensurePricingDefaults();
+    const giftCardRate = await prisma.giftCardRate.findUnique({ where: { brand } });
+    const payoutPercent = giftCardRate?.payoutPercent ?? 0;
+    if (payoutPercent <= 0) {
+      return NextResponse.json({ error: "This gift card is not currently available for Naira payouts." }, { status: 400 });
     }
 
     const numericAmount = Math.round(Number(amount));
     if (!Number.isFinite(numericAmount) || numericAmount < 1) {
       return NextResponse.json({ error: "Enter a valid gift card value in Naira." }, { status: 400 });
     }
+    const rate = payoutPercent / 100;
     const totalValue = Math.round(numericAmount * rate);
 
     // 4. Save the order AND the image to the database

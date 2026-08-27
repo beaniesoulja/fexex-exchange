@@ -114,3 +114,16 @@ model Swap {
 
   @@index([userId, createdAt])
 }
+
+model PricingSettings {
+  id             String   @id @default("default")
+  usdToNairaRate Float    @default(1600)
+  updatedAt      DateTime @updatedAt
+}
+
+model GiftCardRate {
+  id             String   @id @default(cuid())
+  brand          String   @unique
+  payoutPercent  Float    @default(0)
+  updatedAt      DateTime @updatedAt
+}

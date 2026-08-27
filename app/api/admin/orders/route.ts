@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { sendCryptoPayout } from '@/lib/nowpayments';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getUsdToNairaRate } from '@/lib/pricing';
 
 export async function GET() {
   try {
@@ -55,10 +56,7 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: 'The user has not saved a valid USDT TRC20 payout wallet.' }, { status: 400 });
       }
 
-      const nairaPerUsdt = Number(process.env.USDT_TO_NGN_RATE);
-      if (!Number.isFinite(nairaPerUsdt) || nairaPerUsdt <= 0) {
-        return NextResponse.json({ error: 'The USDT-to-Naira payout rate is not configured.' }, { status: 503 });
-      }
+      const nairaPerUsdt = await getUsdToNairaRate();
 
       const usdtAmount = Math.floor((order.totalValue / nairaPerUsdt) * 1_000_000) / 1_000_000;
       if (usdtAmount <= 0) {
