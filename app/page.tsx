@@ -13,14 +13,14 @@ export default function Home() {
   return (
     <main id="home" className="fexex-surface min-h-screen overflow-hidden bg-[#161818] text-[#f4f3ee]">
 
-      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
-        <Link href="#home" aria-label="Fexex home">
-          <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} priority className="h-9 w-auto" />
+      <header className="relative z-10 mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-5 px-5 py-5 sm:px-8 sm:py-6">
+        <Link href="#home" aria-label="Fexex home" className="shrink-0">
+          <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} priority className="h-8 w-auto sm:h-9" />
         </Link>
 
         <nav
           aria-label="Main navigation"
-          className="order-3 flex w-full items-center justify-center gap-4 pt-4 text-xs font-medium text-[#a9afa9] sm:gap-6 sm:text-sm md:order-none md:w-auto md:gap-7 md:pt-0"
+          className="order-3 grid w-full grid-cols-4 items-center gap-1 pt-1 text-center text-[11px] font-medium leading-4 text-[#a9afa9] sm:gap-6 sm:text-sm md:order-none md:flex md:w-auto md:gap-7 md:pt-0 md:text-left"
         >
           {navigation.map((item) => (
             <Link key={item.label} href={item.href} className="transition hover:text-[#c6f65c]">
@@ -29,20 +29,20 @@ export default function Home() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm font-semibold text-[#f4f3ee] transition hover:text-[#c6f65c]">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          <Link href="/login" className="text-xs font-semibold text-[#f4f3ee] transition hover:text-[#c6f65c] sm:text-sm">
             Log in
           </Link>
           <Link
             href="/signup"
-            className="rounded-full bg-[#c6f65c] px-4 py-2.5 text-sm font-bold text-[#161818] transition hover:bg-[#d9ff86] sm:px-5"
+            className="rounded-full bg-[#c6f65c] px-3 py-2.5 text-xs font-bold text-[#161818] transition hover:bg-[#d9ff86] sm:px-5 sm:text-sm"
           >
             Start Trading
           </Link>
         </div>
       </header>
 
-      <section className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-5 pb-24 pt-16 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:pb-32 lg:pt-24">
+      <section className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-5 pb-24 pt-10 sm:px-8 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pb-32 lg:pt-24">
         <div>
           <p className="mb-5 inline-flex rounded-full border border-[#c6f65c]/25 bg-[#c6f65c]/10 px-3 py-1 text-xs font-semibold tracking-wide text-[#d8ff96]">
             FEXEX / VALUE IN MOTION

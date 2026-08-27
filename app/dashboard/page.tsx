@@ -135,21 +135,21 @@ export default function UserDashboard() {
     <main className="fexex-surface min-h-screen bg-[#161818] p-4 text-[#f4f3ee] md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
+        <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold">My Dashboard</h1>
-            <p className="text-[#a9afa9]">Your value is ready to move, {session?.user?.email}</p>
+            <p className="break-all text-[#a9afa9]">Your value is ready to move, {session?.user?.email}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex w-full gap-3 sm:w-auto">
             <button 
               onClick={() => router.push("/sell-giftcard")}
-              className="rounded-lg bg-[#c6f65c] px-4 py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86]"
+              className="flex-1 rounded-lg bg-[#c6f65c] px-4 py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86] sm:flex-none"
             >
               + Sell New Card
             </button>
             <button 
               onClick={() => signOut({ callbackUrl: "/login" })} 
-              className="rounded-lg bg-[#2a2e2d] px-4 py-2 text-[#f4f3ee] transition hover:bg-[#343a38]"
+              className="flex-1 rounded-lg bg-[#2a2e2d] px-4 py-2 text-[#f4f3ee] transition hover:bg-[#343a38] sm:flex-none"
             >
               Logout
             </button>
@@ -163,7 +163,7 @@ export default function UserDashboard() {
             <h2 className="text-4xl font-bold">{formatNaira(wallet.fiatBalance)}</h2>
             <div className="mt-4 space-y-2">
               <p className="text-xs font-medium text-[#3c4c1c]">Payout Wallet Address (USDT TRC20)</p>
-              <form onSubmit={saveWalletAddress} className="flex gap-2">
+              <form onSubmit={saveWalletAddress} className="flex flex-col gap-2 sm:flex-row">
                 <label className="sr-only" htmlFor="crypto-wallet-address">Payout wallet address</label>
                 <input
                   id="crypto-wallet-address"
@@ -173,9 +173,9 @@ export default function UserDashboard() {
                   placeholder="T..."
                   minLength={10}
                   required
-                  className="min-w-0 flex-1 rounded-lg bg-[#f4f3ee] p-2 font-mono text-sm text-[#161818] outline-none placeholder:font-sans placeholder:text-[#777a75] focus:ring-2 focus:ring-[#161818]/30"
+                  className="min-w-0 w-full flex-1 rounded-lg bg-[#f4f3ee] p-2 font-mono text-sm text-[#161818] outline-none placeholder:font-sans placeholder:text-[#777a75] focus:ring-2 focus:ring-[#161818]/30"
                 />
-                <button type="submit" disabled={walletAddressSaving} className="rounded-lg bg-[#161818] px-3 py-2 text-xs font-bold text-[#f4f3ee] transition hover:bg-[#2a2e2d] disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="submit" disabled={walletAddressSaving} className="w-full rounded-lg bg-[#161818] px-3 py-2 text-xs font-bold text-[#f4f3ee] transition hover:bg-[#2a2e2d] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
                   {walletAddressSaving ? "Saving..." : "Save"}
                 </button>
               </form>
@@ -195,7 +195,7 @@ export default function UserDashboard() {
             ) : (
               <div className="mt-4 space-y-3">
                 <p className="text-sm font-medium text-[#d6c7ff]">1 USDT = {formatNaira(swapRate)}</p>
-                <form onSubmit={swapToNaira} className="flex gap-2">
+                <form onSubmit={swapToNaira} className="flex flex-col gap-2 sm:flex-row">
                   <label className="sr-only" htmlFor="swap-amount">USDT amount to swap</label>
                   <input
                     id="swap-amount"
@@ -208,9 +208,9 @@ export default function UserDashboard() {
                     onChange={(event) => setSwapAmount(event.target.value)}
                     placeholder={`Min. ${swapMinimum} USDT`}
                     required
-                    className="min-w-0 flex-1 rounded-lg bg-[#f4f3ee] p-2 text-sm text-[#161818] outline-none placeholder:text-[#777a75] focus:ring-2 focus:ring-[#d6c7ff]"
+                    className="min-w-0 w-full flex-1 rounded-lg bg-[#f4f3ee] p-2 text-sm text-[#161818] outline-none placeholder:text-[#777a75] focus:ring-2 focus:ring-[#d6c7ff]"
                   />
-                  <button type="submit" disabled={swapSaving || wallet.cryptoBalance < swapMinimum} className="rounded-lg bg-[#d6c7ff] px-3 py-2 text-xs font-bold text-[#161818] transition hover:bg-[#e5dcff] disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="submit" disabled={swapSaving || wallet.cryptoBalance < swapMinimum} className="w-full rounded-lg bg-[#d6c7ff] px-3 py-2 text-xs font-bold text-[#161818] transition hover:bg-[#e5dcff] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
                     {swapSaving ? "Swapping..." : "Swap to Naira"}
                   </button>
                 </form>

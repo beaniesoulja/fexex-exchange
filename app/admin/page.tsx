@@ -86,18 +86,18 @@ export default function AdminDashboard() {
   return (
     <main className="fexex-surface min-h-screen bg-[#161818] p-4 text-[#f4f3ee] md:p-8">
       <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <div>
+        <div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-sm text-[#a9afa9]">Logged in as: {session?.user?.email}</p>
+            <p className="break-all text-sm text-[#a9afa9]">Logged in as: {session?.user?.email}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex w-full gap-3 sm:w-auto">
             <button onClick={fetchOrders} className="font-semibold text-[#c6f65c] transition hover:text-[#d9ff86]">
               🔄 Refresh
             </button>
             <button 
               onClick={() => signOut({ callbackUrl: "/login" })} 
-              className="rounded-lg bg-[#2a2e2d] px-4 py-2 text-[#f4f3ee] transition hover:bg-[#343a38]"
+              className="flex-1 rounded-lg bg-[#2a2e2d] px-4 py-2 text-[#f4f3ee] transition hover:bg-[#343a38] sm:flex-none"
             >
               Logout
             </button>
@@ -112,8 +112,8 @@ export default function AdminDashboard() {
           <div className="grid gap-4">
             {orders.map((order) => (
               <div key={order.id} className="rounded-xl border border-[#f4f3ee]/10 border-l-4 border-l-[#c6f65c] bg-[#202323] p-6 shadow-lg shadow-black/20">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
+                <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <h2 className="text-xl font-bold text-[#f4f3ee]">
                       {order.giftCardBrand} ({order.giftCardCountry}) - {formatNaira(order.amount)}
                     </h2>
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
                       Submitted: {new Date(order.createdAt).toLocaleString()}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="text-sm text-[#a9afa9]">Rate: {order.rate}</p>
                     <p className="text-2xl font-bold text-[#c6f65c]">
                       Payout: {formatNaira(order.totalValue)}
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
                   </div> {/* 2. FIXED: Removed the word "recent" from the closing tag */}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <button
                     onClick={() => handleAction(order.id, "APPROVE")}
                     disabled={actionLoading === order.id}
