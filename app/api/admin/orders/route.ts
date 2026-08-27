@@ -97,7 +97,8 @@ export async function PATCH(req: Request) {
           }),
           prisma.order.update({
             where: { id: orderId },
-            data: { status: 'COMPLETED' },
+            // The order is settled only after NOWPayments sends a verified finished IPN.
+            data: { status: 'PROCESSING' },
           }),
         ]);
       } catch (error) {

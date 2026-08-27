@@ -32,6 +32,8 @@ enum SwapStatus {
 
 enum PayoutStatus {
   INITIATED
+  COMPLETED
+  FAILED
 }
 
 model User {
