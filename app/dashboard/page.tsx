@@ -88,6 +88,20 @@ function DashboardContent() {
     }
   }, [status, router]);
 
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const reportActivity = () => {
+      void fetch("/api/user/activity", { method: "POST" }).catch((error) => {
+        console.error("Failed to report user activity", error);
+      });
+    };
+
+    reportActivity();
+    const interval = window.setInterval(reportActivity, 60_000);
+    return () => window.clearInterval(interval);
+  }, [status]);
+
   if (status === "loading" || loading) {
     return <div className="flex min-h-screen items-center justify-center bg-[#161818] text-xl text-[#a9afa9]">Loading your dashboard...</div>;
   }

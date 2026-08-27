@@ -39,20 +39,33 @@ export async function POST(req: Request) {
     const rate = payoutPercent / 100;
     const totalValue = Math.round(numericAmount * rate);
 
-    // 4. Save the order AND the image to the database
-    const order = await prisma.order.create({
-      data: {
-        userId: user.id,
-        type: 'SELL_GIFTCARD',
-        status: 'PENDING',
-        amount: numericAmount,
-        rate: rate,
-        totalValue: totalValue,
-        giftCardBrand: brand,
-        giftCardCountry: country,
-        giftCardCode: `${cardCode || 'N/A'} | ${cardPin || 'N/A'}`, 
-        giftCardImage: imageBase64, // <-- THIS IS THE FIX: Save the actual Base64 image!
-      }
+    // Save the order and an activity record together, without recording card codes or PINs in the activity log.
+    const order = await prisma.$transaction(async (tx) => {
+      const savedOrder = await tx.order.create({
+        data: {
+          userId: user.id,
+          type: 'SELL_GIFTCARD',
+          status: 'PENDING',
+          amount: numericAmount,
+          rate: rate,
+          totalValue: totalValue,
+          giftCardBrand: brand,
+          giftCardCountry: country,
+          giftCardCode: `${cardCode || 'N/A'} | ${cardPin || 'N/A'}`,
+          giftCardImage: imageBase64,
+        },
+      });
+
+      await tx.userActivity.create({
+        data: {
+          userId: user.id,
+          orderId: savedOrder.id,
+          type: 'TRADE_SUBMITTED',
+          details: `Submitted ${brand} gift card for ${numericAmount} NGN.`,
+        },
+      });
+
+      return savedOrder;
     });
     try {
       await notifyAdmin({

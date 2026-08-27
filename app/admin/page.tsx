@@ -34,6 +34,46 @@ interface Pricing {
   updatedAt: string;
 }
 
+interface UserSummary {
+  id: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  lastLoginAt: string | null;
+  lastActiveAt: string | null;
+  isOnline: boolean;
+  tradeCount: number;
+  tradeVolume: number;
+}
+
+interface Activity {
+  id: string;
+  type: string;
+  details: string | null;
+  createdAt: string;
+  user: { email: string };
+}
+
+interface Analytics {
+  generatedAt: string;
+  onlineWindowMinutes: number;
+  stats: {
+    totalUsers: number;
+    onlineUsers: number;
+    totalTrades: number;
+    pendingTrades: number;
+    successfulTrades: number;
+    declinedTrades: number;
+  };
+  users: UserSummary[];
+  topUsers: UserSummary[];
+  recentActivities: Activity[];
+}
+
+function formatDateTime(value: string | null) {
+  return value ? new Date(value).toLocaleString() : "Never";
+}
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -44,6 +84,8 @@ export default function AdminDashboard() {
   const [pricing, setPricing] = useState<Pricing | null>(null);
   const [pricingSaving, setPricingSaving] = useState(false);
   const [pricingMessage, setPricingMessage] = useState("");
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [analyticsError, setAnalyticsError] = useState("");
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -55,6 +97,18 @@ export default function AdminDashboard() {
       console.error("Failed to fetch orders", error);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/analytics");
+      if (!res.ok) throw new Error("Failed to load analytics");
+      setAnalytics(await res.json());
+      setAnalyticsError("");
+    } catch (error) {
+      console.error("Failed to fetch analytics", error);
+      setAnalyticsError("We could not load user activity right now.");
     }
   }, []);
 
@@ -78,6 +132,16 @@ export default function AdminDashboard() {
         .catch((error) => {
           console.error("Failed to fetch pricing", error);
           setPricingMessage("We could not load the current pricing.");
+        });
+      void fetch("/api/admin/analytics")
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to load analytics");
+          return res.json();
+        })
+        .then(setAnalytics)
+        .catch((error) => {
+          console.error("Failed to fetch analytics", error);
+          setAnalyticsError("We could not load user activity right now.");
         });
     }
   }, [status, session, router]);
@@ -170,7 +234,7 @@ export default function AdminDashboard() {
             <p className="break-all text-sm text-[#a9afa9]">Logged in as: {session?.user?.email}</p>
           </div>
           <div className="flex w-full gap-3 sm:w-auto">
-            <button onClick={fetchOrders} className="font-semibold text-[#c6f65c] transition hover:text-[#d9ff86]">
+            <button onClick={() => { void fetchOrders(); void fetchAnalytics(); }} className="font-semibold text-[#c6f65c] transition hover:text-[#d9ff86]">
               🔄 Refresh
             </button>
             <button 
@@ -181,6 +245,114 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        <section className="mb-8" aria-labelledby="activity-heading">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold tracking-wide text-[#c6f65c]">OPERATIONS OVERVIEW</p>
+              <h2 id="activity-heading" className="mt-1 text-2xl font-bold text-[#f4f3ee]">User activity</h2>
+            </div>
+            {analytics && <p className="text-xs text-[#a9afa9]">Online = active in the last {analytics.onlineWindowMinutes} minutes</p>}
+          </div>
+
+          {analyticsError ? (
+            <p role="alert" className="rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200">{analyticsError}</p>
+          ) : !analytics ? (
+            <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 text-sm text-[#a9afa9]">Loading user activity...</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                {[
+                  ["Total users", analytics.stats.totalUsers, "#d6c7ff"],
+                  ["Online now", analytics.stats.onlineUsers, "#c6f65c"],
+                  ["All trades", analytics.stats.totalTrades, "#f4f3ee"],
+                  ["Pending trades", analytics.stats.pendingTrades, "#f5c76a"],
+                  ["Successful", analytics.stats.successfulTrades, "#c6f65c"],
+                  ["Declined", analytics.stats.declinedTrades, "#f28b82"],
+                ].map(([label, value, color]) => (
+                  <div key={String(label)} className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4 shadow-lg shadow-black/10">
+                    <p className="text-xs font-medium text-[#a9afa9]">{label}</p>
+                    <p className="mt-2 text-3xl font-bold" style={{ color: String(color) }}>{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-5 shadow-lg shadow-black/10">
+                  <h3 className="text-lg font-bold text-[#f4f3ee]">Top users</h3>
+                  <p className="mt-1 text-xs text-[#a9afa9]">Ranked by total submitted trade value.</p>
+                  {analytics.topUsers.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-[#a9afa9]">No trades have been submitted yet.</p>
+                  ) : (
+                    <ol className="mt-4 space-y-3">
+                      {analytics.topUsers.map((user, index) => (
+                        <li key={user.id} className="flex items-center gap-3 border-b border-[#f4f3ee]/10 pb-3 last:border-0 last:pb-0">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#d6c7ff]/15 text-xs font-bold text-[#e5dcff]">{index + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-[#f4f3ee]">{user.email}</p>
+                            <p className="text-xs text-[#a9afa9]">{user.tradeCount} trade{user.tradeCount === 1 ? "" : "s"}</p>
+                          </div>
+                          <p className="text-sm font-bold text-[#c6f65c]">{formatNaira(user.tradeVolume)}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-5 shadow-lg shadow-black/10">
+                  <h3 className="text-lg font-bold text-[#f4f3ee]">Recent activity</h3>
+                  {analytics.recentActivities.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-[#a9afa9]">Login and trade activity will appear here.</p>
+                  ) : (
+                    <ol className="mt-4 max-h-72 space-y-3 overflow-y-auto pr-1">
+                      {analytics.recentActivities.map((activity) => (
+                        <li key={activity.id} className="border-b border-[#f4f3ee]/10 pb-3 last:border-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="min-w-0 break-all text-sm font-semibold text-[#f4f3ee]">{activity.user.email}</p>
+                            <p className="shrink-0 text-xs text-[#777a75]">{new Date(activity.createdAt).toLocaleString()}</p>
+                          </div>
+                          <p className="mt-1 text-xs font-semibold text-[#d6c7ff]">{activity.type.replaceAll("_", " ")}</p>
+                          {activity.details && <p className="mt-1 text-sm text-[#a9afa9]">{activity.details}</p>}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] shadow-lg shadow-black/10">
+                <div className="border-b border-[#f4f3ee]/10 px-5 py-4">
+                  <h3 className="text-lg font-bold text-[#f4f3ee]">All users</h3>
+                  <p className="mt-1 text-xs text-[#a9afa9]">Last login, current activity and lifetime trading overview.</p>
+                </div>
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <thead className="border-b border-[#f4f3ee]/10 text-xs text-[#a9afa9]">
+                    <tr>
+                      <th className="px-5 py-3 font-medium">User</th>
+                      <th className="px-5 py-3 font-medium">Status</th>
+                      <th className="px-5 py-3 font-medium">Last login</th>
+                      <th className="px-5 py-3 font-medium">Trades</th>
+                      <th className="px-5 py-3 font-medium">Trade value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.users.map((user) => (
+                      <tr key={user.id} className="border-b border-[#f4f3ee]/10 last:border-0">
+                        <td className="max-w-[260px] break-all px-5 py-4 font-medium text-[#f4f3ee]">{user.email}</td>
+                        <td className="px-5 py-4">
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${user.isOnline ? "bg-[#c6f65c]/15 text-[#d8ff96]" : "bg-[#f4f3ee]/10 text-[#a9afa9]"}`}>{user.isOnline ? "Online" : "Offline"}</span>
+                        </td>
+                        <td className="px-5 py-4 text-[#a9afa9]">{formatDateTime(user.lastLoginAt)}</td>
+                        <td className="px-5 py-4 text-[#d7dbd4]">{user.tradeCount}</td>
+                        <td className="px-5 py-4 font-semibold text-[#c6f65c]">{formatNaira(user.tradeVolume)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </section>
 
         <section className="mb-8 rounded-2xl border border-[#d6c7ff]/25 bg-[#202323] p-5 shadow-lg shadow-black/20 sm:p-6" aria-labelledby="pricing-heading">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

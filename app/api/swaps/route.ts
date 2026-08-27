@@ -65,7 +65,7 @@ export async function POST(req: Request) {
         return null;
       }
 
-      return tx.swap.create({
+      const swap = await tx.swap.create({
         data: {
           userId: session.user.id,
           asset: ASSET,
@@ -74,6 +74,16 @@ export async function POST(req: Request) {
           rate,
         },
       });
+
+      await tx.userActivity.create({
+        data: {
+          userId: session.user.id,
+          type: "CRYPTO_SWAPPED",
+          details: `${cryptoAmount} ${ASSET} converted to ${nairaAmount} NGN.`,
+        },
+      });
+
+      return swap;
     });
 
     if (!swap) {

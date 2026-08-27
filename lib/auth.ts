@@ -34,6 +34,17 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid password");
         }
 
+        const now = new Date();
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: now, lastActiveAt: now },
+          }),
+          prisma.userActivity.create({
+            data: { userId: user.id, type: "LOGIN" },
+          }),
+        ]);
+
         // 3. Return the user object (this gets encoded into the secure session token)
         return {
           id: user.id,

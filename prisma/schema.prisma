@@ -36,6 +36,12 @@ enum PayoutStatus {
   FAILED
 }
 
+enum UserActivityType {
+  LOGIN
+  TRADE_SUBMITTED
+  CRYPTO_SWAPPED
+}
+
 model User {
   id                  String   @id @default(cuid())
   email               String   @unique
@@ -44,11 +50,14 @@ model User {
   role                Role     @default(USER)
   kycVerified         Boolean  @default(false)
   createdAt           DateTime @default(now())
+  lastLoginAt         DateTime?
+  lastActiveAt        DateTime?
 
-  wallet  Wallet?
-  orders  Order[]
-  swaps   Swap[]
-  payouts Payout[]
+  wallet     Wallet?
+  orders     Order[]
+  swaps      Swap[]
+  payouts    Payout[]
+  activities UserActivity[]
 }
 
 model Wallet {
@@ -127,4 +136,18 @@ model GiftCardRate {
   payoutPercent  Float    @default(0)
   isActive       Boolean  @default(false)
   updatedAt      DateTime @updatedAt
+}
+
+model UserActivity {
+  id        String           @id @default(cuid())
+  userId    String
+  orderId   String?
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      UserActivityType
+  details   String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([orderId])
 }
