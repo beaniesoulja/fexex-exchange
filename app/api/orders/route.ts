@@ -21,22 +21,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Your Fexex account could not be found." }, { status: 404 });
     }
 
-    if (typeof brand !== 'string' || country !== 'NG') {
+    if (typeof brand !== 'string' || country !== 'US') {
       return NextResponse.json({ error: "Choose a supported gift card for a Naira payout." }, { status: 400 });
     }
 
     await ensurePricingDefaults();
     const giftCardRate = await prisma.giftCardRate.findUnique({ where: { brand } });
-    const nairaPayoutPerThousand = giftCardRate?.nairaPayoutPerThousand ?? 0;
-    if (!giftCardRate?.isActive || nairaPayoutPerThousand <= 0) {
+    const nairaPayoutPerUsd = giftCardRate?.nairaPayoutPerUsd ?? 0;
+    if (!giftCardRate?.isActive || nairaPayoutPerUsd <= 0) {
       return NextResponse.json({ error: "This gift card is not currently available for Naira payouts." }, { status: 400 });
     }
 
-    const numericAmount = Math.round(Number(amount));
-    if (!Number.isFinite(numericAmount) || numericAmount < 1) {
-      return NextResponse.json({ error: "Enter a valid gift card value in Naira." }, { status: 400 });
+    const numericAmount = Math.round(Number(amount) * 100) / 100;
+    if (!Number.isFinite(numericAmount) || numericAmount < 0.01) {
+      return NextResponse.json({ error: "Enter a valid gift card value in USD." }, { status: 400 });
     }
-    const rate = nairaPayoutPerThousand / 1000;
+    const rate = nairaPayoutPerUsd;
     const totalValue = Math.round(numericAmount * rate);
 
     // Save the order and an activity record together, without recording card codes or PINs in the activity log.
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
           userId: user.id,
           orderId: savedOrder.id,
           type: 'TRADE_SUBMITTED',
-          details: `Submitted ${brand} gift card for ${numericAmount} NGN.`,
+          details: `Submitted ${brand} gift card for ${numericAmount} USD.`,
         },
       });
 

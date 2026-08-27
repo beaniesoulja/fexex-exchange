@@ -102,7 +102,7 @@ export default function Home() {
           <article id="sell-giftcard" className="rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-8 transition hover:-translate-y-1 hover:border-[#c6f65c]/50">
             <p className="text-sm font-semibold text-[#c6f65c]">SELL GIFTCARD</p>
             <h2 className="mt-3 text-3xl font-semibold">Unlock the value in your cards.</h2>
-            <p className="mt-4 leading-7 text-[#c8ccc7]">Submit eligible gift cards with a Naira value and receive your approved payout in ₦.</p>
+            <p className="mt-4 leading-7 text-[#c8ccc7]">Submit eligible gift cards with a USD card value and receive your approved payout in ₦.</p>
             <Link href="/sell-giftcard" className="mt-7 inline-block font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Sell Giftcard →</Link>
           </article>
         </div>

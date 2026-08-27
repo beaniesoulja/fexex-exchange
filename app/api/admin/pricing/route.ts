@@ -57,16 +57,16 @@ export async function PATCH(req: Request) {
 
     const allowedBrands = new Set<string>(giftCards.map((giftCard) => giftCard.name));
     const suppliedBrands = new Set<string>();
-    const updates: Array<{ brand: string; nairaPayoutPerThousand: number; isActive: boolean }> = [];
+    const updates: Array<{ brand: string; nairaPayoutPerUsd: number; isActive: boolean }> = [];
 
     for (const item of giftCardRates) {
       const brand = item?.brand;
-      const nairaPayoutPerThousand = Number(item?.nairaPayoutPerThousand);
+      const nairaPayoutPerUsd = Number(item?.nairaPayoutPerUsd);
       const isActive = item?.isActive;
       if (typeof brand !== "string" || !allowedBrands.has(brand) || suppliedBrands.has(brand)) {
         return NextResponse.json({ error: "Invalid gift card list." }, { status: 400 });
       }
-      if (!Number.isFinite(nairaPayoutPerThousand) || nairaPayoutPerThousand < 0 || nairaPayoutPerThousand > MAX_GIFT_CARD_NAIRA_RATE) {
+      if (!Number.isFinite(nairaPayoutPerUsd) || nairaPayoutPerUsd < 0 || nairaPayoutPerUsd > MAX_GIFT_CARD_NAIRA_RATE) {
         return NextResponse.json({ error: `Enter a valid Naira payout rate for ${brand}.` }, { status: 400 });
       }
       if (typeof isActive !== "boolean") {
@@ -74,7 +74,7 @@ export async function PATCH(req: Request) {
       }
 
       suppliedBrands.add(brand);
-      updates.push({ brand, nairaPayoutPerThousand, isActive });
+      updates.push({ brand, nairaPayoutPerUsd, isActive });
     }
 
     await ensurePricingDefaults();
@@ -89,8 +89,8 @@ export async function PATCH(req: Request) {
           tx.giftCardRate.update({
             where: { brand: rate.brand },
             data: {
-              nairaPayoutPerThousand: rate.nairaPayoutPerThousand,
-              payoutPercent: rate.nairaPayoutPerThousand / 10,
+              nairaPayoutPerUsd: rate.nairaPayoutPerUsd,
+              payoutPercent: (rate.nairaPayoutPerUsd / usdToNairaRate) * 100,
               isActive: rate.isActive,
             },
           }),

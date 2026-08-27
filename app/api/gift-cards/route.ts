@@ -21,11 +21,11 @@ export async function GET() {
       currency: "NGN",
       giftCards: giftCards.map((giftCard) => {
         const rate = ratesByBrand.get(giftCard.name);
-        const nairaPayoutPerThousand = rate?.nairaPayoutPerThousand ?? 0;
+        const nairaPayoutPerUsd = rate?.nairaPayoutPerUsd ?? 0;
         return {
           ...giftCard,
-          nairaPayoutPerThousand,
-          available: rate?.isActive === true && nairaPayoutPerThousand > 0,
+          nairaPayoutPerUsd,
+          available: rate?.isActive === true && nairaPayoutPerUsd > 0,
         };
       }),
     });

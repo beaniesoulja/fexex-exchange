@@ -309,7 +309,7 @@ function DashboardContent() {
             <div className="mt-7 grid gap-3">
               <Link href="/sell-giftcard" className="rounded-2xl border border-[#c6f65c]/40 bg-[#c6f65c]/10 p-5 transition hover:border-[#c6f65c] hover:bg-[#c6f65c]/20">
                 <span className="block text-lg font-bold text-[#f4f3ee]">Sell a gift card</span>
-                <span className="mt-1 block text-sm leading-6 text-[#c8ccc7]">Submit your card and receive a Naira value for approval.</span>
+                <span className="mt-1 block text-sm leading-6 text-[#c8ccc7]">Enter your USD card value and receive a Naira payout estimate.</span>
               </Link>
               <Link href="/dashboard#crypto-balance" className="rounded-2xl border border-[#d6c7ff]/40 bg-[#d6c7ff]/10 p-5 transition hover:border-[#d6c7ff] hover:bg-[#d6c7ff]/20">
                 <span className="block text-lg font-bold text-[#f4f3ee]">Exchange crypto to cash</span>

@@ -3,13 +3,13 @@ import { giftCards } from "@/lib/gift-cards";
 
 export const DEFAULT_USD_TO_NAIRA_RATE = 1600;
 
-// Naira paid for every ₦1,000 of gift-card face value. A 0 rate keeps a card
+// Naira paid for every $1 of gift-card face value. A 0 rate keeps a card
 // visible to admins but unavailable until a Naira payout is set.
 const DEFAULT_GIFT_CARD_NAIRA_RATES: Record<string, number> = {
-  Amazon: 900,
-  Apple: 850,
+  Amazon: 1440,
+  Apple: 1360,
   "Google Play": 0,
-  Steam: 800,
+  Steam: 1280,
   Xbox: 0,
   "Razer Gold": 0,
   Sephora: 0,
@@ -31,9 +31,10 @@ export async function ensurePricingDefaults() {
         create: {
           brand: giftCard.name,
           // Retained for compatibility with older records; customer pricing uses
-          // nairaPayoutPerThousand exclusively.
-          payoutPercent: (DEFAULT_GIFT_CARD_NAIRA_RATES[giftCard.name] ?? 0) / 10,
-          nairaPayoutPerThousand: DEFAULT_GIFT_CARD_NAIRA_RATES[giftCard.name] ?? 0,
+          // nairaPayoutPerUsd exclusively.
+          payoutPercent: ((DEFAULT_GIFT_CARD_NAIRA_RATES[giftCard.name] ?? 0) / DEFAULT_USD_TO_NAIRA_RATE) * 100,
+          nairaPayoutPerThousand: 0,
+          nairaPayoutPerUsd: DEFAULT_GIFT_CARD_NAIRA_RATES[giftCard.name] ?? 0,
           isActive: (DEFAULT_GIFT_CARD_NAIRA_RATES[giftCard.name] ?? 0) > 0,
         },
       }),

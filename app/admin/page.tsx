@@ -24,7 +24,7 @@ interface Order {
 interface GiftCardRate {
   id: string;
   brand: string;
-  nairaPayoutPerThousand: number;
+  nairaPayoutPerUsd: number;
   isActive: boolean;
 }
 
@@ -169,11 +169,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const updateGiftCardRate = (brand: string, nairaPayoutPerThousand: number) => {
+  const updateGiftCardRate = (brand: string, nairaPayoutPerUsd: number) => {
     setPricing((current) => current ? {
       ...current,
       giftCardRates: current.giftCardRates.map((rate) =>
-        rate.brand === brand ? { ...rate, nairaPayoutPerThousand } : rate,
+        rate.brand === brand ? { ...rate, nairaPayoutPerUsd } : rate,
       ),
     } : current);
   };
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           usdToNairaRate: pricing.usdToNairaRate,
-          giftCardRates: pricing.giftCardRates.map(({ brand, nairaPayoutPerThousand, isActive }) => ({ brand, nairaPayoutPerThousand, isActive })),
+          giftCardRates: pricing.giftCardRates.map(({ brand, nairaPayoutPerUsd, isActive }) => ({ brand, nairaPayoutPerUsd, isActive })),
         }),
       });
       const data = await res.json();
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
 
               <div>
                 <div className="mb-3 flex items-baseline justify-between gap-3">
-                  <h3 className="text-sm font-semibold text-[#f4f3ee]">Gift card payout rates in Naira</h3>
+                  <h3 className="text-sm font-semibold text-[#f4f3ee]">Gift card payout rates in Naira per USD</h3>
                   <span className="text-xs text-[#a9afa9]">Toggle cards on only when buying</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -409,11 +409,11 @@ export default function AdminDashboard() {
                           max="1000000"
                           step="1"
                           required
-                          value={rate.nairaPayoutPerThousand}
+                  value={rate.nairaPayoutPerUsd}
                           onChange={(event) => updateGiftCardRate(rate.brand, Number(event.target.value))}
                           className="min-w-0 flex-1 rounded-lg border border-[#f4f3ee]/15 bg-[#202323] px-3 py-2 text-sm text-[#f4f3ee] outline-none focus:border-[#d6c7ff]"
                         />
-                        <span className="text-xs text-[#a9afa9]">₦ / ₦1,000</span>
+                        <span className="text-xs text-[#a9afa9]">₦ / $1</span>
                       </span>
                     </label>
                   ))}
@@ -449,7 +449,6 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-sm text-[#a9afa9]">Rate: {formatNaira(order.rate * 1000)} / ₦1,000</p>
                     <p className="text-2xl font-bold text-[#c6f65c]">
                       Payout: {formatNaira(order.totalValue)}
                     </p>

@@ -135,6 +135,7 @@ model GiftCardRate {
   brand          String   @unique
   payoutPercent  Float    @default(0)
   nairaPayoutPerThousand Float @default(0)
+  nairaPayoutPerUsd Float @default(0)
   isActive       Boolean  @default(false)
   updatedAt      DateTime @updatedAt
 }
