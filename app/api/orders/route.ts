@@ -55,13 +55,18 @@ export async function POST(req: Request) {
         giftCardImage: imageBase64, // <-- THIS IS THE FIX: Save the actual Base64 image!
       }
     });
-    notifyAdmin({
-      userEmail: user.email,
-      brand,
-      country,
-      amount: numericAmount,
-      totalValue,
-    }).catch((error) => console.error("Notification error:", error));
+    try {
+      await notifyAdmin({
+        userEmail: user.email,
+        brand,
+        country,
+        amount: numericAmount,
+        totalValue,
+      });
+    } catch (error) {
+      // Keep the saved trade intact if Telegram is temporarily unavailable.
+      console.error("Notification error:", error);
+    }
 
     return NextResponse.json({ 
       message: "Order submitted successfully! Admin is reviewing.", 
