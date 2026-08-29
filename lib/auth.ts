@@ -3,6 +3,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
@@ -11,11 +12,16 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        captchaToken: { label: "Turnstile token", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Missing email or password");
+        }
+
+        if (!(await verifyTurnstileToken(credentials.captchaToken, "login"))) {
+          throw new Error("Bot verification failed");
         }
 
         // 1. Find the user in the database

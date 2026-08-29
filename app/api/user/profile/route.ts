@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { NIGERIAN_BANKS } from '@/lib/nigerian-banks';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
@@ -34,8 +35,12 @@ export async function GET() {
 
     return NextResponse.json({
       email: userData.email,
+      username: userData.username,
+      legalName: userData.legalName,
       kycVerified: userData.kycVerified,
       cryptoWalletAddress: userData.cryptoWalletAddress,
+      bankName: userData.bankName,
+      bankAccountNumber: userData.bankAccountNumber,
       wallet: userData.wallet || { fiatBalance: 0, cryptoBalance: 0 },
       orders: userData.orders,
       swaps: userData.swaps,
@@ -56,19 +61,34 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const walletAddress = typeof body.walletAddress === "string" ? body.walletAddress.trim() : "";
+    const bankName = typeof body.bankName === "string" ? body.bankName.trim() : "";
+    const bankAccountNumber = typeof body.bankAccountNumber === "string" ? body.bankAccountNumber.replace(/\s/g, "") : "";
 
-    if (walletAddress.length < 10) {
-      return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 });
+    if (walletAddress) {
+      if (walletAddress.length < 10) {
+        return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 });
+      }
+
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { cryptoWalletAddress: walletAddress },
+      });
+
+      return NextResponse.json({ message: "Wallet address saved successfully!" }, { status: 200 });
+    }
+
+    if (!(NIGERIAN_BANKS as readonly string[]).includes(bankName) || !/^\d{10}$/.test(bankAccountNumber)) {
+      return NextResponse.json({ error: "Choose a bank and enter a valid 10-digit account number." }, { status: 400 });
     }
 
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { cryptoWalletAddress: walletAddress },
+      data: { bankName, bankAccountNumber },
     });
 
-    return NextResponse.json({ message: "Wallet address saved successfully!" }, { status: 200 });
+    return NextResponse.json({ message: "Bank details saved successfully!" }, { status: 200 });
   } catch (error) {
-    console.error("Failed to save wallet:", error);
-    return NextResponse.json({ error: "Failed to save wallet" }, { status: 500 });
+    console.error("Failed to save payout details:", error);
+    return NextResponse.json({ error: "Failed to save payout details" }, { status: 500 });
   }
 }

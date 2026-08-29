@@ -2,9 +2,10 @@
 "use client";
 import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { formatNaira } from "@/lib/currency";
+import { ProfileMenu } from "@/components/profile-menu";
 
 // 1. FIXED: Added giftCardImage to the interface
 interface Order {
@@ -250,12 +251,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
             <span className="text-xs text-[#a9afa9]">Updates automatically</span>
-            <button 
-              onClick={() => signOut({ callbackUrl: "/login" })} 
-              className="flex-1 rounded-lg bg-[#2a2e2d] px-4 py-2 text-[#f4f3ee] transition hover:bg-[#343a38] sm:flex-none"
-            >
-              Logout
-            </button>
+            <ProfileMenu email={session?.user?.email} />
           </div>
         </div>
 

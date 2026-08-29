@@ -45,8 +45,14 @@ enum UserActivityType {
 model User {
   id                  String   @id @default(cuid())
   email               String   @unique
+  username            String?  @unique
+  legalName           String?
+  phoneCountryCode    String?
+  phoneNumber         String?
   passwordHash        String
   cryptoWalletAddress String?
+  bankName            String?
+  bankAccountNumber   String?
   role                Role     @default(USER)
   kycVerified         Boolean  @default(false)
   createdAt           DateTime @default(now())
@@ -58,6 +64,20 @@ model User {
   swaps      Swap[]
   payouts    Payout[]
   activities UserActivity[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@unique([phoneCountryCode, phoneNumber])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Wallet {

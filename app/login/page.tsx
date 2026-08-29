@@ -6,11 +6,16 @@ import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
+import { Turnstile } from "@/components/turnstile";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [failedPasswordAttempts, setFailedPasswordAttempts] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) || process.env.NODE_ENV !== "production";
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,14 +23,24 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    if (turnstileEnabled && !turnstileToken) {
+      setError("Please complete the bot protection check.");
+      setLoading(false);
+      return;
+    }
+
     const result = await signIn("credentials", {
       email,
       password,
+      captchaToken: turnstileToken,
       redirect: false, 
     });
 
     if (result?.error) {
-      setError("Invalid email or password");
+      setError(result.error === "Bot verification failed" ? "Bot protection could not verify your request. Please try again." : "Invalid email or password");
+      if (result.error !== "Bot verification failed") {
+        setFailedPasswordAttempts((attempts) => attempts + 1);
+      }
       setLoading(false);
     } else {
       // 1. Login successful! Now let's check their role to send them to the right place.
@@ -71,11 +86,15 @@ export default function LoginPage() {
             />
           </div>
 
+          <Turnstile action="login" onTokenChange={setTurnstileToken} />
+
           {error && <p className="rounded-xl bg-red-400/10 px-4 py-3 text-center text-sm text-red-200">{error}</p>}
+
+          {failedPasswordAttempts >= 2 && <p className="text-center text-sm text-[#a9afa9]">Forgot your password? <Link href="/forgot-password" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Reset it by email</Link></p>}
 
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || (turnstileEnabled && !turnstileToken)}
             className="w-full rounded-xl bg-[#c6f65c] py-3 font-bold text-[#161818] transition hover:bg-[#d9ff86] disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign In"}

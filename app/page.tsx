@@ -103,7 +103,10 @@ export default function Home() {
             <p className="text-sm font-semibold text-[#c6f65c]">SELL GIFTCARD</p>
             <h2 className="mt-3 text-3xl font-semibold">Unlock the value in your cards.</h2>
             <p className="mt-4 leading-7 text-[#c8ccc7]">Submit eligible gift cards with a USD card value and receive your approved payout in ₦.</p>
-            <Link href="/sell-giftcard" className="mt-7 inline-block font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Sell Giftcard →</Link>
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3">
+              <Link href="/sell-giftcard" className="inline-block font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Sell Giftcard →</Link>
+              <Link href="/giftcard-calculator" className="inline-block font-semibold text-[#d6c7ff] hover:text-[#e5dcff]">Check live Naira rates →</Link>
+            </div>
           </article>
         </div>
       </section>
@@ -115,7 +118,7 @@ export default function Home() {
             <h2 id="gift-cards-heading" className="mt-3 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">The cards you know. A clearer way to move their value.</h2>
             <p className="mt-4 max-w-xl leading-7 text-[#a9afa9]">Choose from nine card brands at the start of your trade. We will guide you through the details from there.</p>
           </div>
-          <Link href="/sell-giftcard" className="inline-flex w-fit items-center rounded-full border border-[#f4f3ee]/20 px-5 py-3 text-sm font-semibold transition hover:border-[#c6f65c] hover:bg-[#c6f65c]/10">Sell a gift card <span className="ml-3 text-[#c6f65c]">→</span></Link>
+          <Link href="/giftcard-calculator" className="inline-flex w-fit items-center rounded-full border border-[#f4f3ee]/20 px-5 py-3 text-sm font-semibold transition hover:border-[#c6f65c] hover:bg-[#c6f65c]/10">Check live Naira rates <span className="ml-3 text-[#c6f65c]">→</span></Link>
         </div>
         <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-label="Supported gift card brands">
           {giftCards.map((giftCard) => (

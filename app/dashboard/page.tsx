@@ -1,10 +1,12 @@
 // app/dashboard/page.tsx
 "use client";
 import Link from "next/link";
-import { Suspense, useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { formatNaira } from "@/lib/currency";
+import { NIGERIAN_BANKS } from "@/lib/nigerian-banks";
+import { ProfileMenu } from "@/components/profile-menu";
 
 interface Order {
   id: string;
@@ -31,35 +33,51 @@ interface Swap {
 }
 
 export default function UserDashboard() {
-  return (
-    <Suspense fallback={<DashboardLoading />}>
-      <DashboardContent />
-    </Suspense>
-  );
+  return <DashboardContent />;
 }
 
 function DashboardLoading() {
-  return <div className="flex min-h-screen items-center justify-center bg-[#161818] text-xl text-[#a9afa9]">Loading your dashboard...</div>;
+  return (
+    <main className="fexex-surface min-h-screen bg-[#161818] p-4 text-[#f4f3ee] md:p-8">
+      <div className="mx-auto max-w-4xl animate-pulse">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="space-y-3"><div className="h-9 w-52 rounded-lg bg-[#f4f3ee]/10" /><div className="h-4 w-72 rounded bg-[#f4f3ee]/5" /></div>
+          <div className="h-10 w-28 rounded-lg bg-[#c6f65c]/25" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2"><div className="h-64 rounded-2xl bg-[#c6f65c]/20" /><div className="h-64 rounded-2xl bg-[#f4f3ee]/10" /></div>
+        <div className="mt-8 h-64 rounded-2xl bg-[#f4f3ee]/10" />
+      </div>
+    </main>
+  );
 }
 
 function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const showTradePrompt = searchParams.get("welcome") === "1";
+  const [showTradePrompt, setShowTradePrompt] = useState(false);
   
-  const [wallet, setWallet] = useState<Wallet>({ fiatBalance: 0, cryptoBalance: 0 });
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [swaps, setSwaps] = useState<Swap[]>([]);
-  const [cryptoWalletAddress, setCryptoWalletAddress] = useState("");
-  const [walletAddressMessage, setWalletAddressMessage] = useState("");
-  const [walletAddressSaving, setWalletAddressSaving] = useState(false);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [swaps, setSwaps] = useState<Swap[] | null>(null);
+  const [username, setUsername] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankDetailsMessage, setBankDetailsMessage] = useState("");
+  const [bankDetailsSaving, setBankDetailsSaving] = useState(false);
   const [swapAmount, setSwapAmount] = useState("");
   const [swapRate, setSwapRate] = useState<number | null>(null);
+  const [quoteLoaded, setQuoteLoaded] = useState(false);
   const [swapMinimum, setSwapMinimum] = useState(0.01);
   const [swapMessage, setSwapMessage] = useState("");
   const [swapSaving, setSwapSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const promptTimer = window.setTimeout(() => {
+      setShowTradePrompt(new URLSearchParams(window.location.search).get("welcome") === "1");
+    }, 0);
+    return () => window.clearTimeout(promptTimer);
+  }, []);
 
   // Protect route: Redirect to login if not authenticated
   useEffect(() => {
@@ -76,7 +94,10 @@ function DashboardContent() {
             setWallet(profile.wallet);
             setOrders(profile.orders);
             setSwaps(profile.swaps ?? []);
-            setCryptoWalletAddress(profile.cryptoWalletAddress ?? "");
+            setUsername(profile.username ?? "");
+            setLegalName(profile.legalName ?? "");
+            setBankName(profile.bankName ?? "");
+            setBankAccountNumber(profile.bankAccountNumber ?? "");
           }
           if (quote) {
             setSwapRate(quote.rate ?? null);
@@ -84,7 +105,7 @@ function DashboardContent() {
           }
         })
         .catch((error) => console.error("Failed to fetch profile", error))
-        .finally(() => setLoading(false));
+        .finally(() => setQuoteLoaded(true));
     }
   }, [status, router]);
 
@@ -128,33 +149,33 @@ function DashboardContent() {
     return () => window.clearInterval(interval);
   }, [status]);
 
-  if (status === "loading" || loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#161818] text-xl text-[#a9afa9]">Loading your dashboard...</div>;
+  if (status !== "authenticated") {
+    return <DashboardLoading />;
   }
 
-  const saveWalletAddress = async (event: React.FormEvent<HTMLFormElement>) => {
+  const saveBankDetails = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setWalletAddressSaving(true);
-    setWalletAddressMessage("");
+    setBankDetailsSaving(true);
+    setBankDetailsMessage("");
 
     try {
       const response = await fetch("/api/user/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: cryptoWalletAddress }),
+        body: JSON.stringify({ bankName, bankAccountNumber }),
       });
       const data = await response.json();
 
       if (!response.ok) {
-        setWalletAddressMessage(data.error ?? "We could not save your wallet address.");
+        setBankDetailsMessage(data.error ?? "We could not save your bank details.");
         return;
       }
 
-      setWalletAddressMessage("Wallet address saved.");
+      setBankDetailsMessage("Bank details saved.");
     } catch {
-      setWalletAddressMessage("A network error occurred. Please try again.");
+      setBankDetailsMessage("A network error occurred. Please try again.");
     } finally {
-      setWalletAddressSaving(false);
+      setBankDetailsSaving(false);
     }
   };
 
@@ -176,7 +197,7 @@ function DashboardContent() {
       }
 
       setWallet(data.wallet);
-      setSwaps((current) => [data.swap, ...current].slice(0, 5));
+      setSwaps((current) => [data.swap, ...(current ?? [])].slice(0, 5));
       setSwapAmount("");
       setSwapMessage(`${data.swap.cryptoAmount} USDT converted to ${formatNaira(data.swap.nairaAmount)}.`);
     } catch {
@@ -193,7 +214,7 @@ function DashboardContent() {
         <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-3xl font-bold">My Dashboard</h1>
-            <p className="break-all text-[#a9afa9]">Your value is ready to move, {session?.user?.email}</p>
+            <p className="break-all text-[#a9afa9]">Your value is ready to move, {username ? `@${username}` : session?.user?.email}</p>
           </div>
           <div className="flex w-full gap-3 sm:w-auto">
             <button 
@@ -202,39 +223,61 @@ function DashboardContent() {
             >
               + Sell New Card
             </button>
-            <button 
-              onClick={() => signOut({ callbackUrl: "/login" })} 
-              className="flex-1 rounded-lg bg-[#2a2e2d] px-4 py-2 text-[#f4f3ee] transition hover:bg-[#343a38] sm:flex-none"
-            >
-              Logout
-            </button>
+            <ProfileMenu username={username} email={session?.user?.email} />
           </div>
         </div>
 
         {/* Wallet Balances */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="rounded-2xl bg-[#c6f65c] p-6 text-[#161818] shadow-lg shadow-black/30">
+          <div id="settings" className="rounded-2xl bg-[#c6f65c] p-6 text-[#161818] shadow-lg shadow-black/30">
             <p className="mb-1 text-sm font-medium text-[#3c4c1c]">Naira balance</p>
-            <h2 className="text-4xl font-bold">{formatNaira(wallet.fiatBalance)}</h2>
+            <h2 className="text-4xl font-bold">{wallet ? formatNaira(wallet.fiatBalance) : "—"}</h2>
+            {!wallet && <p className="mt-1 text-xs font-medium text-[#3c4c1c]">Loading your balance...</p>}
             <div className="mt-4 space-y-2">
-              <p className="text-xs font-medium text-[#3c4c1c]">Payout Wallet Address (USDT TRC20)</p>
-              <form onSubmit={saveWalletAddress} className="flex flex-col gap-2 sm:flex-row">
-                <label className="sr-only" htmlFor="crypto-wallet-address">Payout wallet address</label>
+              <p className="text-xs font-medium text-[#3c4c1c]">Bank details for Naira withdrawals</p>
+              <form onSubmit={saveBankDetails} className="space-y-2">
+                <div>
+                  <label htmlFor="account-name" className="mb-1 block text-xs font-medium text-[#3c4c1c]">Account name</label>
+                  <input
+                    id="account-name"
+                    type="text"
+                    value={legalName}
+                    readOnly
+                    placeholder="Your legal registration name"
+                    className="w-full cursor-not-allowed rounded-lg border border-[#161818]/10 bg-[#dce8b7] p-2 text-sm font-medium text-[#3c4c1c] outline-none placeholder:text-[#67734b]"
+                  />
+                </div>
+                <label className="sr-only" htmlFor="bank-name">Bank name</label>
+                <select
+                  id="bank-name"
+                  value={bankName}
+                  onChange={(event) => setBankName(event.target.value)}
+                  required
+                  className="w-full rounded-lg bg-[#f4f3ee] p-2 text-sm text-[#161818] outline-none focus:ring-2 focus:ring-[#161818]/30"
+                >
+                  <option value="">Select your bank</option>
+                  {NIGERIAN_BANKS.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
+                </select>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <label className="sr-only" htmlFor="bank-account-number">Bank account number</label>
                 <input
-                  id="crypto-wallet-address"
+                  id="bank-account-number"
                   type="text"
-                  value={cryptoWalletAddress}
-                  onChange={(event) => setCryptoWalletAddress(event.target.value)}
-                  placeholder="T..."
+                  inputMode="numeric"
+                  value={bankAccountNumber}
+                  onChange={(event) => setBankAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="10-digit account number"
                   minLength={10}
+                  maxLength={10}
                   required
                   className="min-w-0 w-full flex-1 rounded-lg bg-[#f4f3ee] p-2 font-mono text-sm text-[#161818] outline-none placeholder:font-sans placeholder:text-[#777a75] focus:ring-2 focus:ring-[#161818]/30"
                 />
-                <button type="submit" disabled={walletAddressSaving} className="w-full rounded-lg bg-[#161818] px-3 py-2 text-xs font-bold text-[#f4f3ee] transition hover:bg-[#2a2e2d] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
-                  {walletAddressSaving ? "Saving..." : "Save"}
-                </button>
+                  <button type="submit" disabled={bankDetailsSaving} className="w-full rounded-lg bg-[#161818] px-3 py-2 text-xs font-bold text-[#f4f3ee] transition hover:bg-[#2a2e2d] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
+                    {bankDetailsSaving ? "Saving..." : "Save"}
+                  </button>
+                </div>
               </form>
-              {walletAddressMessage && <p role="status" className="text-xs font-medium text-[#3c4c1c]">{walletAddressMessage}</p>}
+              {bankDetailsMessage && <p role="status" className="text-xs font-medium text-[#3c4c1c]">{bankDetailsMessage}</p>}
             </div>
             <button className="mt-4 rounded-lg bg-[#161818] px-4 py-2 text-sm font-semibold text-[#f4f3ee] transition hover:bg-[#2a2e2d]">
               Request Withdrawal
@@ -243,9 +286,11 @@ function DashboardContent() {
           
           <div id="crypto-balance" className="scroll-mt-4 rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30">
             <p className="mb-1 text-sm font-medium text-[#a9afa9]">Crypto holdings (USDT)</p>
-            <h2 className="text-4xl font-bold">{wallet.cryptoBalance.toFixed(4)} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
+            <h2 className="text-4xl font-bold">{wallet ? wallet.cryptoBalance.toFixed(4) : "—"} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
             <p className="mt-3 text-sm leading-6 text-[#c8ccc7]">Crypto is held separately. Swap USDT to Naira first, then request a Naira payout.</p>
-            {swapRate === null ? (
+            {!quoteLoaded ? (
+              <p role="status" className="mt-4 rounded-lg border border-[#f4f3ee]/10 bg-[#f4f3ee]/5 p-3 text-sm text-[#a9afa9]">Loading today&apos;s swap rate...</p>
+            ) : swapRate === null ? (
               <p role="status" className="mt-4 rounded-lg border border-[#d6c7ff]/30 bg-[#d6c7ff]/10 p-3 text-sm text-[#e5dcff]">The current swap rate is unavailable. Please try again later.</p>
             ) : (
               <div className="mt-4 space-y-3">
@@ -258,14 +303,14 @@ function DashboardContent() {
                     inputMode="decimal"
                     min={swapMinimum}
                     step="0.000001"
-                    max={wallet.cryptoBalance}
+                    max={wallet?.cryptoBalance ?? 0}
                     value={swapAmount}
                     onChange={(event) => setSwapAmount(event.target.value)}
                     placeholder={`Min. ${swapMinimum} USDT`}
                     required
                     className="min-w-0 w-full flex-1 rounded-lg bg-[#f4f3ee] p-2 text-sm text-[#161818] outline-none placeholder:text-[#777a75] focus:ring-2 focus:ring-[#d6c7ff]"
                   />
-                  <button type="submit" disabled={swapSaving || wallet.cryptoBalance < swapMinimum} className="w-full rounded-lg bg-[#d6c7ff] px-3 py-2 text-xs font-bold text-[#161818] transition hover:bg-[#e5dcff] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+                  <button type="submit" disabled={swapSaving || !wallet || wallet.cryptoBalance < swapMinimum} className="w-full rounded-lg bg-[#d6c7ff] px-3 py-2 text-xs font-bold text-[#161818] transition hover:bg-[#e5dcff] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
                     {swapSaving ? "Swapping..." : "Swap to Naira"}
                   </button>
                 </form>
@@ -275,7 +320,7 @@ function DashboardContent() {
               </div>
             )}
             {swapMessage && <p role="status" className="mt-3 text-sm text-[#d6c7ff]">{swapMessage}</p>}
-            {swaps[0] && <p className="mt-4 text-xs text-[#a9afa9]">Last swap: {swaps[0].cryptoAmount} {swaps[0].asset} → {formatNaira(swaps[0].nairaAmount)}.</p>}
+            {swaps?.[0] && <p className="mt-4 text-xs text-[#a9afa9]">Last swap: {swaps[0].cryptoAmount} {swaps[0].asset} → {formatNaira(swaps[0].nairaAmount)}.</p>}
           </div>
         </div>
 
@@ -283,7 +328,9 @@ function DashboardContent() {
         <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 shadow-lg shadow-black/20">
           <h3 className="mb-4 text-xl font-bold text-[#f4f3ee]">Recent activity</h3>
           
-          {orders.length === 0 ? (
+          {orders === null ? (
+            <p role="status" className="py-8 text-center text-[#a9afa9]">Loading recent activity...</p>
+          ) : orders.length === 0 ? (
             <p className="py-8 text-center text-[#a9afa9]">No transactions yet. Start by selling a gift card.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -343,7 +390,16 @@ function DashboardContent() {
               </Link>
             </div>
 
-            <Link href="/dashboard" className="mt-6 inline-block text-sm font-semibold text-[#a9afa9] transition hover:text-[#f4f3ee]">Maybe later</Link>
+            <button
+              type="button"
+              onClick={() => {
+                setShowTradePrompt(false);
+                router.replace("/dashboard");
+              }}
+              className="mt-6 text-sm font-semibold text-[#a9afa9] transition hover:text-[#f4f3ee]"
+            >
+              Maybe later
+            </button>
           </div>
         </div>
       )}

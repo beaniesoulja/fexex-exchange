@@ -139,7 +139,7 @@ export default function SellGiftcardPage() {
         <div className="mt-7 rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-6 shadow-2xl shadow-black/30 sm:p-8">
           <p className="text-sm font-semibold text-[#c6f65c]">NAIRA GIFT CARD PAYOUTS</p>
           <h1 className="mt-2 text-3xl font-semibold">Sell a gift card</h1>
-          <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Choose a card, enter its USD value, and see your Naira payout update instantly.</p>
+          <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Choose a card, enter its USD value, and see your Naira payout update instantly. <Link href="/giftcard-calculator" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Check live rates first →</Link></p>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-5">
             <fieldset>
