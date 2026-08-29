@@ -5,7 +5,7 @@ import { giftCards } from "@/lib/gift-cards";
 const navigation = [
   { label: "Home", href: "#home" },
   { label: "Sell Crypto", href: "#sell-crypto" },
-  { label: "Sell Giftcard", href: "/sell-giftcard" },
+  { label: "Trade", href: "/trade" },
   { label: "Dashboard", href: "/dashboard" },
 ];
 
@@ -57,7 +57,7 @@ export default function Home() {
             <Link href="/signup" className="rounded-full bg-[#c6f65c] px-6 py-3.5 font-bold text-[#161818] transition hover:bg-[#d9ff86]">
               Start Trading
             </Link>
-            <Link href="/sell-giftcard" className="rounded-full border border-[#f4f3ee]/20 px-6 py-3.5 font-semibold text-[#f4f3ee] transition hover:border-[#c6f65c]/60 hover:bg-[#c6f65c]/10">
+            <Link href="/trade" className="rounded-full border border-[#f4f3ee]/20 px-6 py-3.5 font-semibold text-[#f4f3ee] transition hover:border-[#c6f65c]/60 hover:bg-[#c6f65c]/10">
               Explore services
             </Link>
           </div>
@@ -104,7 +104,7 @@ export default function Home() {
             <h2 className="mt-3 text-3xl font-semibold">Unlock the value in your cards.</h2>
             <p className="mt-4 leading-7 text-[#c8ccc7]">Submit eligible gift cards with a USD card value and receive your approved payout in ₦.</p>
             <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3">
-              <Link href="/sell-giftcard" className="inline-block font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Sell Giftcard →</Link>
+              <Link href="/trade" className="inline-block font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Trade →</Link>
               <Link href="/giftcard-calculator" className="inline-block font-semibold text-[#d6c7ff] hover:text-[#e5dcff]">Check live Naira rates →</Link>
             </div>
           </article>

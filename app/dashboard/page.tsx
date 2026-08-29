@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { formatNaira } from "@/lib/currency";
 import { NIGERIAN_BANKS } from "@/lib/nigerian-banks";
 import { ProfileMenu } from "@/components/profile-menu";
@@ -54,6 +54,8 @@ function DashboardLoading() {
 function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const isWalletPage = pathname === "/wallet";
   const [showTradePrompt, setShowTradePrompt] = useState(false);
   
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -61,8 +63,12 @@ function DashboardContent() {
   const [swaps, setSwaps] = useState<Swap[] | null>(null);
   const [username, setUsername] = useState("");
   const [legalName, setLegalName] = useState("");
+  const [avatarData, setAvatarData] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [savedBankName, setSavedBankName] = useState("");
+  const [savedBankAccountNumber, setSavedBankAccountNumber] = useState("");
+  const [showBankAccountForm, setShowBankAccountForm] = useState(true);
   const [bankDetailsMessage, setBankDetailsMessage] = useState("");
   const [bankDetailsSaving, setBankDetailsSaving] = useState(false);
   const [swapAmount, setSwapAmount] = useState("");
@@ -71,6 +77,8 @@ function DashboardContent() {
   const [swapMinimum, setSwapMinimum] = useState(0.01);
   const [swapMessage, setSwapMessage] = useState("");
   const [swapSaving, setSwapSaving] = useState(false);
+  const [isNairaBalanceVisible, setIsNairaBalanceVisible] = useState(true);
+  const [isCryptoBalanceVisible, setIsCryptoBalanceVisible] = useState(true);
 
   useEffect(() => {
     const promptTimer = window.setTimeout(() => {
@@ -96,8 +104,12 @@ function DashboardContent() {
             setSwaps(profile.swaps ?? []);
             setUsername(profile.username ?? "");
             setLegalName(profile.legalName ?? "");
+            setAvatarData(profile.avatarData ?? "");
             setBankName(profile.bankName ?? "");
             setBankAccountNumber(profile.bankAccountNumber ?? "");
+            setSavedBankName(profile.bankName ?? "");
+            setSavedBankAccountNumber(profile.bankAccountNumber ?? "");
+            setShowBankAccountForm(!(profile.bankName && profile.bankAccountNumber));
           }
           if (quote) {
             setSwapRate(quote.rate ?? null);
@@ -136,6 +148,7 @@ function DashboardContent() {
             setWallet(profile.wallet);
             setOrders(profile.orders);
             setSwaps(profile.swaps ?? []);
+            setAvatarData(profile.avatarData ?? "");
           }
           if (quote) {
             setSwapRate(quote.rate ?? null);
@@ -152,6 +165,9 @@ function DashboardContent() {
   if (status !== "authenticated") {
     return <DashboardLoading />;
   }
+
+  const displayUsername = username || session?.user?.username;
+  const displayLegalName = legalName || session?.user?.legalName || "";
 
   const saveBankDetails = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -171,12 +187,29 @@ function DashboardContent() {
         return;
       }
 
+      setSavedBankName(bankName);
+      setSavedBankAccountNumber(bankAccountNumber);
+      setShowBankAccountForm(false);
       setBankDetailsMessage("Bank details saved.");
     } catch {
       setBankDetailsMessage("A network error occurred. Please try again.");
     } finally {
       setBankDetailsSaving(false);
     }
+  };
+
+  const addNewBankAccount = () => {
+    setBankName("");
+    setBankAccountNumber("");
+    setBankDetailsMessage("");
+    setShowBankAccountForm(true);
+  };
+
+  const cancelBankAccountEdit = () => {
+    setBankName(savedBankName);
+    setBankAccountNumber(savedBankAccountNumber);
+    setBankDetailsMessage("");
+    setShowBankAccountForm(false);
   };
 
   const swapToNaira = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -213,37 +246,56 @@ function DashboardContent() {
         {/* Header */}
         <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h1 className="text-3xl font-bold">My Dashboard</h1>
-            <p className="break-all text-[#a9afa9]">Your value is ready to move, {username ? `@${username}` : session?.user?.email}</p>
+            <h1 className="text-3xl font-bold">{isWalletPage ? "My Wallet" : "My Dashboard"}</h1>
+            <p className="text-[#a9afa9]">{isWalletPage ? "Your Naira and crypto holdings." : displayUsername ? `Your value is ready to move, @${displayUsername}` : "Your value is ready to move."}</p>
           </div>
           <div className="flex w-full gap-3 sm:w-auto">
             <button 
-              onClick={() => router.push("/sell-giftcard")}
+              onClick={() => setShowTradePrompt(true)}
               className="flex-1 rounded-lg bg-[#c6f65c] px-4 py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86] sm:flex-none"
             >
-              + Sell New Card
+              Trade
             </button>
-            <ProfileMenu username={username} email={session?.user?.email} />
+            <Link href="/wallet" className={`flex-1 rounded-lg px-4 py-2 text-center font-semibold transition sm:flex-none ${isWalletPage ? "bg-[#d6c7ff] text-[#161818]" : "bg-[#2a2e2d] text-[#f4f3ee] hover:bg-[#343a38]"}`}>Wallet</Link>
+            <ProfileMenu username={displayUsername} avatarData={avatarData || session?.user?.avatarData} />
           </div>
         </div>
 
         {/* Wallet Balances */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {isWalletPage && <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div id="settings" className="rounded-2xl bg-[#c6f65c] p-6 text-[#161818] shadow-lg shadow-black/30">
-            <p className="mb-1 text-sm font-medium text-[#3c4c1c]">Naira balance</p>
-            <h2 className="text-4xl font-bold">{wallet ? formatNaira(wallet.fiatBalance) : "—"}</h2>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-[#3c4c1c]">Naira balance</p>
+              <button type="button" onClick={() => setIsNairaBalanceVisible((visible) => !visible)} aria-pressed={isNairaBalanceVisible} className="rounded-lg bg-[#161818]/10 px-2.5 py-1 text-xs font-bold text-[#3c4c1c] transition hover:bg-[#161818]/15">{isNairaBalanceVisible ? "Hide" : "Show"}</button>
+            </div>
+            <h2 className="text-4xl font-bold">{wallet ? isNairaBalanceVisible ? formatNaira(wallet.fiatBalance) : "₦••••••" : "—"}</h2>
             {!wallet && <p className="mt-1 text-xs font-medium text-[#3c4c1c]">Loading your balance...</p>}
             <div className="mt-4 space-y-2">
-              <p className="text-xs font-medium text-[#3c4c1c]">Bank details for Naira withdrawals</p>
+              {savedBankName && savedBankAccountNumber && !showBankAccountForm ? (
+                <>
+                <div className="rounded-xl border border-[#161818]/15 bg-[#dce8b7] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#3c4c1c]">Default withdrawal account</p>
+                      <p className="mt-1 text-sm font-bold text-[#161818]">{savedBankName}</p>
+                      <p className="text-sm text-[#3c4c1c]">{displayLegalName || "Account holder"} · ••••••{savedBankAccountNumber.slice(-4)}</p>
+                    </div>
+                    <span className="rounded-full bg-[#161818]/10 px-2 py-1 text-[10px] font-bold text-[#3c4c1c]">DEFAULT</span>
+                  </div>
+                </div>
+                <button type="button" onClick={addNewBankAccount} className="w-full rounded-lg border border-[#161818]/25 bg-transparent px-3 py-2 text-xs font-bold text-[#3c4c1c] transition hover:bg-[#161818]/10">Add new account</button>
+                </>
+              ) : (
+                <>
+              <p className="text-xs font-medium text-[#3c4c1c]">{savedBankName ? "Add a new default withdrawal account" : "Bank details for Naira withdrawals"}</p>
               <form onSubmit={saveBankDetails} className="space-y-2">
                 <div>
                   <label htmlFor="account-name" className="mb-1 block text-xs font-medium text-[#3c4c1c]">Account name</label>
                   <input
                     id="account-name"
                     type="text"
-                    value={legalName}
+                    value={displayLegalName}
                     readOnly
-                    placeholder="Your legal registration name"
                     className="w-full cursor-not-allowed rounded-lg border border-[#161818]/10 bg-[#dce8b7] p-2 text-sm font-medium text-[#3c4c1c] outline-none placeholder:text-[#67734b]"
                   />
                 </div>
@@ -273,11 +325,14 @@ function DashboardContent() {
                   className="min-w-0 w-full flex-1 rounded-lg bg-[#f4f3ee] p-2 font-mono text-sm text-[#161818] outline-none placeholder:font-sans placeholder:text-[#777a75] focus:ring-2 focus:ring-[#161818]/30"
                 />
                   <button type="submit" disabled={bankDetailsSaving} className="w-full rounded-lg bg-[#161818] px-3 py-2 text-xs font-bold text-[#f4f3ee] transition hover:bg-[#2a2e2d] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
-                    {bankDetailsSaving ? "Saving..." : "Save"}
+                    {bankDetailsSaving ? "Saving..." : "Save as default"}
                   </button>
                 </div>
+                {savedBankName && <button type="button" onClick={cancelBankAccountEdit} className="text-xs font-semibold text-[#3c4c1c] underline underline-offset-2">Cancel</button>}
               </form>
-              {bankDetailsMessage && <p role="status" className="text-xs font-medium text-[#3c4c1c]">{bankDetailsMessage}</p>}
+                </>
+              )}
+              {bankDetailsMessage && <p role="status" className={`text-xs font-medium ${bankDetailsMessage === "Bank details saved." ? "text-[#3c4c1c]" : "text-red-700"}`}>{bankDetailsMessage}</p>}
             </div>
             <button className="mt-4 rounded-lg bg-[#161818] px-4 py-2 text-sm font-semibold text-[#f4f3ee] transition hover:bg-[#2a2e2d]">
               Request Withdrawal
@@ -285,8 +340,11 @@ function DashboardContent() {
           </div>
           
           <div id="crypto-balance" className="scroll-mt-4 rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30">
-            <p className="mb-1 text-sm font-medium text-[#a9afa9]">Crypto holdings (USDT)</p>
-            <h2 className="text-4xl font-bold">{wallet ? wallet.cryptoBalance.toFixed(4) : "—"} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-[#a9afa9]">Crypto holdings (USDT)</p>
+              <button type="button" onClick={() => setIsCryptoBalanceVisible((visible) => !visible)} aria-pressed={isCryptoBalanceVisible} className="rounded-lg bg-[#f4f3ee]/10 px-2.5 py-1 text-xs font-bold text-[#d7dbd4] transition hover:bg-[#f4f3ee]/15">{isCryptoBalanceVisible ? "Hide" : "Show"}</button>
+            </div>
+            <h2 className="text-4xl font-bold">{wallet ? isCryptoBalanceVisible ? wallet.cryptoBalance.toFixed(4) : "••••••" : "—"} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
             <p className="mt-3 text-sm leading-6 text-[#c8ccc7]">Crypto is held separately. Swap USDT to Naira first, then request a Naira payout.</p>
             {!quoteLoaded ? (
               <p role="status" className="mt-4 rounded-lg border border-[#f4f3ee]/10 bg-[#f4f3ee]/5 p-3 text-sm text-[#a9afa9]">Loading today&apos;s swap rate...</p>
@@ -322,7 +380,7 @@ function DashboardContent() {
             {swapMessage && <p role="status" className="mt-3 text-sm text-[#d6c7ff]">{swapMessage}</p>}
             {swaps?.[0] && <p className="mt-4 text-xs text-[#a9afa9]">Last swap: {swaps[0].cryptoAmount} {swaps[0].asset} → {formatNaira(swaps[0].nairaAmount)}.</p>}
           </div>
-        </div>
+        </div>}
 
         {/* Recent Orders */}
         <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 shadow-lg shadow-black/20">
@@ -375,16 +433,16 @@ function DashboardContent() {
       {showTradePrompt && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 backdrop-blur-sm sm:items-center sm:justify-center" role="dialog" aria-modal="true" aria-labelledby="trade-choice-heading">
           <div className="w-full max-w-lg rounded-3xl border border-[#f4f3ee]/15 bg-[#202323] p-6 shadow-2xl shadow-black/60 sm:p-8">
-            <p className="text-xs font-semibold tracking-[0.16em] text-[#c6f65c]">WELCOME TO FEXEX</p>
-            <h2 id="trade-choice-heading" className="mt-3 text-3xl font-semibold text-[#f4f3ee]">What would you like to do?</h2>
-            <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Choose a service to begin. You can always come back to your dashboard.</p>
+            <p className="text-xs font-semibold tracking-[0.16em] text-[#c6f65c]">FEXEX TRADE DESK</p>
+            <h2 id="trade-choice-heading" className="mt-3 text-3xl font-semibold text-[#f4f3ee]">Choose a trade</h2>
+            <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Choose Gift Card Trading or Crypto to Naira. You can switch whenever you need to.</p>
 
             <div className="mt-7 grid gap-3">
-              <Link href="/sell-giftcard" className="rounded-2xl border border-[#c6f65c]/40 bg-[#c6f65c]/10 p-5 transition hover:border-[#c6f65c] hover:bg-[#c6f65c]/20">
+              <Link href="/trade" className="rounded-2xl border border-[#c6f65c]/40 bg-[#c6f65c]/10 p-5 transition hover:border-[#c6f65c] hover:bg-[#c6f65c]/20">
                 <span className="block text-lg font-bold text-[#f4f3ee]">Sell a gift card</span>
                 <span className="mt-1 block text-sm leading-6 text-[#c8ccc7]">Enter your USD card value and receive a Naira payout estimate.</span>
               </Link>
-              <Link href="/dashboard#crypto-balance" className="rounded-2xl border border-[#d6c7ff]/40 bg-[#d6c7ff]/10 p-5 transition hover:border-[#d6c7ff] hover:bg-[#d6c7ff]/20">
+              <Link href="/wallet#crypto-balance" className="rounded-2xl border border-[#d6c7ff]/40 bg-[#d6c7ff]/10 p-5 transition hover:border-[#d6c7ff] hover:bg-[#d6c7ff]/20">
                 <span className="block text-lg font-bold text-[#f4f3ee]">Exchange crypto to cash</span>
                 <span className="mt-1 block text-sm leading-6 text-[#c8ccc7]">Convert your available USDT to Naira at today&apos;s rate.</span>
               </Link>

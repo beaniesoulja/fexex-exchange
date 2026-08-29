@@ -6,6 +6,7 @@ import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const genericResponse = { message: "If an account matches that email, you will receive reset instructions shortly." };
+const isLocalDevelopment = process.env.NODE_ENV !== "production";
 
 export async function POST(request: Request) {
   let body: { email?: unknown; captchaToken?: unknown };
@@ -40,6 +41,17 @@ export async function POST(request: Request) {
     const resetUrl = `${origin}/reset-password?token=${encodeURIComponent(token)}`;
 
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+
+    // Email delivery is not available in local development. Return the same
+    // one-time link only to the local browser so account recovery is testable.
+    if (isLocalDevelopment) {
+      await prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
+      return NextResponse.json({
+        message: "Your local password reset link is ready.",
+        resetUrl,
+      });
+    }
+
     await sendPasswordResetEmail(user.email, resetUrl);
     await prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
   } catch (error) {

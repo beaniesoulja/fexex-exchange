@@ -60,7 +60,7 @@ export default function GiftcardCalculatorPage() {
           <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" priority />
         </Link>
         <div className="flex items-center gap-3">
-          <Link href="/sell-giftcard" className="hidden text-sm font-semibold text-[#d7dbd4] transition hover:text-[#c6f65c] sm:block">
+          <Link href="/trade" className="hidden text-sm font-semibold text-[#d7dbd4] transition hover:text-[#c6f65c] sm:block">
             Sell a card
           </Link>
           <Link href="/login" className="rounded-full border border-[#f4f3ee]/15 px-4 py-2 text-xs font-bold text-[#f4f3ee] transition hover:border-[#c6f65c]/60 hover:bg-[#c6f65c]/10 sm:text-sm">
@@ -129,7 +129,7 @@ export default function GiftcardCalculatorPage() {
                   <p className="mt-3 text-sm leading-6 text-[#d7dbd4]">{selectedCard?.available ? `${formatNaira(selectedCard.nairaPayoutPerUsd)} × your card value` : "Select a card and enter its value to calculate your payout."}</p>
                 </div>
 
-                <Link href="/sell-giftcard" className="flex w-full items-center justify-center rounded-xl bg-[#c6f65c] px-4 py-3.5 text-sm font-extrabold text-[#161818] transition hover:bg-[#d9ff86]">
+                <Link href="/trade" className="flex w-full items-center justify-center rounded-xl bg-[#c6f65c] px-4 py-3.5 text-sm font-extrabold text-[#161818] transition hover:bg-[#d9ff86]">
                   Start a gift card trade <span className="ml-2 text-lg">→</span>
                 </Link>
               </div>

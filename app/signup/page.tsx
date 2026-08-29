@@ -13,11 +13,14 @@ export default function SignupPage() {
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [legalName, setLegalName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [phoneCountryCode, setPhoneCountryCode] = useState("+234");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [createdAccount, setCreatedAccount] = useState<{ email: string; password: string } | null>(null);
@@ -105,7 +108,7 @@ export default function SignupPage() {
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, legalName, phoneCountryCode, phoneNumber, email, password }),
+        body: JSON.stringify({ username, legalName, dateOfBirth, phoneCountryCode, phoneNumber, email, password }),
       });
       const data = await response.json();
 
@@ -168,6 +171,10 @@ export default function SignupPage() {
             <p className="mt-2 text-xs leading-5 text-[#777a75]">Use the name on your government ID. This helps with future KYC and Naira payouts.</p>
           </div>
           <div>
+            <label htmlFor="date-of-birth" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Date of birth</label>
+            <input id="date-of-birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} autoComplete="bday" required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" />
+          </div>
+          <div>
             <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Email address</label>
             <input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="you@example.com" />
           </div>
@@ -181,11 +188,17 @@ export default function SignupPage() {
           </div>
           <div>
             <label htmlFor="password" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Password</label>
-            <input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="At least 8 characters" />
+            <div className="relative">
+              <input id="password" type={isPasswordVisible ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 pr-16 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="At least 8 characters" />
+              <button type="button" onClick={() => setIsPasswordVisible((visible) => !visible)} className="absolute inset-y-0 right-0 px-4 text-xs font-bold text-[#c6f65c] hover:text-[#d9ff86]">{isPasswordVisible ? "Hide" : "Show"}</button>
+            </div>
           </div>
           <div>
             <label htmlFor="confirm-password" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Confirm password</label>
-            <input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={8} required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="Repeat your password" />
+            <div className="relative">
+              <input id="confirm-password" type={isConfirmPasswordVisible ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={8} required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 pr-16 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="Repeat your password" />
+              <button type="button" onClick={() => setIsConfirmPasswordVisible((visible) => !visible)} className="absolute inset-y-0 right-0 px-4 text-xs font-bold text-[#c6f65c] hover:text-[#d9ff86]">{isConfirmPasswordVisible ? "Hide" : "Show"}</button>
+            </div>
           </div>
 
           {error && <p role="alert" className="rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}

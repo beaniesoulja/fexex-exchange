@@ -17,7 +17,7 @@ function duplicateFieldResponse(field: "username" | "phoneNumber" | "email") {
 }
 
 export async function POST(request: Request) {
-  let body: { username?: unknown; legalName?: unknown; phoneCountryCode?: unknown; phoneNumber?: unknown; email?: unknown; password?: unknown };
+  let body: { username?: unknown; legalName?: unknown; dateOfBirth?: unknown; phoneCountryCode?: unknown; phoneNumber?: unknown; email?: unknown; password?: unknown };
 
   try {
     body = await request.json();
@@ -28,6 +28,8 @@ export async function POST(request: Request) {
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
   const legalName = typeof body.legalName === "string" ? body.legalName.trim().replace(/\s+/g, " ") : "";
+  const dateOfBirthValue = typeof body.dateOfBirth === "string" ? body.dateOfBirth : "";
+  const dateOfBirth = /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirthValue) ? new Date(`${dateOfBirthValue}T12:00:00.000Z`) : null;
   const phoneCountryCode = typeof body.phoneCountryCode === "string" ? `+${body.phoneCountryCode.replace(/\D/g, "").slice(0, 3)}` : "";
   const phoneNumber = typeof body.phoneNumber === "string" ? body.phoneNumber.replace(/\D/g, "") : "";
   const password = typeof body.password === "string" ? body.password : "";
@@ -38,6 +40,10 @@ export async function POST(request: Request) {
 
   if (legalName.length < 2 || legalName.length > 120 || legalName.split(" ").length < 2) {
     return NextResponse.json({ error: "Enter your first and last legal names as they appear on your government ID." }, { status: 400 });
+  }
+
+  if (!dateOfBirth || Number.isNaN(dateOfBirth.getTime()) || dateOfBirth.toISOString().slice(0, 10) !== dateOfBirthValue || dateOfBirth > new Date()) {
+    return NextResponse.json({ error: "Enter a valid date of birth." }, { status: 400 });
   }
 
   if (!/^\+\d{1,3}$/.test(phoneCountryCode) || !/^\d{10}$/.test(phoneNumber)) {
@@ -83,6 +89,7 @@ export async function POST(request: Request) {
         email,
         username,
         legalName,
+        dateOfBirth,
         phoneCountryCode,
         phoneNumber,
         passwordHash,

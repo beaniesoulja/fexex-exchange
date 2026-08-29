@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { giftCards } from "@/lib/gift-cards";
+import { cryptoAssets } from "@/lib/crypto-assets";
 
 export const DEFAULT_USD_TO_NAIRA_RATE = 1600;
 
@@ -37,6 +38,13 @@ export async function ensurePricingDefaults() {
           nairaPayoutPerUsd: DEFAULT_GIFT_CARD_NAIRA_RATES[giftCard.name] ?? 0,
           isActive: (DEFAULT_GIFT_CARD_NAIRA_RATES[giftCard.name] ?? 0) > 0,
         },
+      }),
+    ),
+    ...cryptoAssets.map((crypto) =>
+      prisma.cryptoRate.upsert({
+        where: { asset: crypto.asset },
+        update: {},
+        create: { asset: crypto.asset, nairaPayoutPerUsd: DEFAULT_USD_TO_NAIRA_RATE, isActive: true },
       }),
     ),
   ]);

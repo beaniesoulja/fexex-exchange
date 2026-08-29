@@ -47,6 +47,8 @@ model User {
   email               String   @unique
   username            String?  @unique
   legalName           String?
+  dateOfBirth         DateTime?
+  avatarData          String?
   phoneCountryCode    String?
   phoneNumber         String?
   passwordHash        String
@@ -55,6 +57,11 @@ model User {
   bankAccountNumber   String?
   role                Role     @default(USER)
   kycVerified         Boolean  @default(false)
+  marketplaceBuyerApproved Boolean @default(false)
+  bio                 String?  @db.VarChar(180)
+  nameDisplay          String  @default("USERNAME")
+  preferredCurrency    String  @default("NGN")
+  timezone             String  @default("Africa/Lagos")
   createdAt           DateTime @default(now())
   lastLoginAt         DateTime?
   lastActiveAt        DateTime?
@@ -64,9 +71,36 @@ model User {
   swaps      Swap[]
   payouts    Payout[]
   activities UserActivity[]
+  tradeMessages TradeMessage[]
+  loginSessions LoginSession[]
+  profileAudits ProfileAudit[]
   passwordResetTokens PasswordResetToken[]
 
   @@unique([phoneCountryCode, phoneNumber])
+}
+
+model ProfileAudit {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  details   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([createdAt])
+}
+
+model LoginSession {
+  id        String   @id @default(cuid())
+  userId    String
+  browser   String
+  os        String
+  ipAddress String?
+  location  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, active, lastSeenAt])
 }
 
 model PasswordResetToken {
@@ -104,11 +138,29 @@ model Order {
   giftCardCountry String?
   giftCardImage   String?
   giftCardCode    String?
+  cryptoAsset     String?
+  payoutBankName  String?
+  payoutAccountName String?
+  payoutBankAccountNumber String?
 
   payout Payout?
+  tradeMessages TradeMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model TradeMessage {
+  id        String   @id @default(cuid())
+  orderId   String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
 }
 
 model Payout {
@@ -158,6 +210,14 @@ model GiftCardRate {
   nairaPayoutPerUsd Float @default(0)
   isActive       Boolean  @default(false)
   updatedAt      DateTime @updatedAt
+}
+
+model CryptoRate {
+  id                   String   @id @default(cuid())
+  asset                String   @unique
+  nairaPayoutPerUsd    Float    @default(0)
+  isActive             Boolean  @default(false)
+  updatedAt            DateTime @updatedAt
 }
 
 model UserActivity {

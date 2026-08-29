@@ -19,8 +19,6 @@ declare global {
   }
 }
 
-const developmentSiteKey = "1x00000000000000000000AA";
-
 interface TurnstileProps {
   action: "login" | "password_reset";
   onTokenChange: (token: string | null) => void;
@@ -29,7 +27,7 @@ interface TurnstileProps {
 export function Turnstile({ action, onTokenChange }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scriptReady, setScriptReady] = useState(false);
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? (process.env.NODE_ENV !== "production" ? developmentSiteKey : "");
+  const siteKey = process.env.NODE_ENV === "production" ? process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "" : "";
 
   useEffect(() => {
     if (!siteKey || !scriptReady || !containerRef.current || !window.turnstile) return;

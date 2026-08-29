@@ -7,17 +7,33 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { formatNaira } from "@/lib/currency";
+import { ProfileMenu } from "@/components/profile-menu";
 
 interface GiftCardOption {
   name: string;
   code: string;
+  icon: string;
   nairaPayoutPerUsd: number;
   available: boolean;
 }
 
+interface CryptoOption {
+  asset: string;
+  name: string;
+  nairaPayoutPerUsd: number;
+  available: boolean;
+}
+
+interface DefaultBankAccount {
+  bankName: string;
+  bankAccountNumber: string;
+  legalName: string;
+}
+
 export default function SellGiftcardPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [tradeType, setTradeType] = useState<"giftcard" | "crypto">("giftcard");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [rateError, setRateError] = useState("");
@@ -27,6 +43,14 @@ export default function SellGiftcardPage() {
   const [amount, setAmount] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [cryptoOptions, setCryptoOptions] = useState<CryptoOption[]>([]);
+  const [cryptoRatesLoading, setCryptoRatesLoading] = useState(true);
+  const [cryptoRateError, setCryptoRateError] = useState("");
+  const [selectedCrypto, setSelectedCrypto] = useState("");
+  const [cryptoUsdValue, setCryptoUsdValue] = useState("");
+  const [cryptoMessage, setCryptoMessage] = useState("");
+  const [cryptoSubmitting, setCryptoSubmitting] = useState(false);
+  const [defaultBankAccount, setDefaultBankAccount] = useState<DefaultBankAccount | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -57,10 +81,46 @@ export default function SellGiftcardPage() {
     };
   }, [status]);
 
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    let active = true;
+    void Promise.all([
+      fetch("/api/crypto-rates").then(async (response) => {
+        if (!response.ok) throw new Error("Failed to load crypto rates");
+        return response.json();
+      }),
+      fetch("/api/user/profile").then(async (response) => response.ok ? response.json() : null),
+    ])
+      .then(([rates, profile]) => {
+        if (!active) return;
+        setCryptoOptions(rates.cryptoAssets ?? []);
+        if (profile?.bankName && profile?.bankAccountNumber && profile?.legalName) {
+          setDefaultBankAccount({ bankName: profile.bankName, bankAccountNumber: profile.bankAccountNumber, legalName: profile.legalName });
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load crypto trade details", error);
+        if (active) setCryptoRateError("We could not load crypto trading rates. Please try again.");
+      })
+      .finally(() => {
+        if (active) setCryptoRatesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [status]);
+
   const selectedGiftCard = giftCardOptions.find((giftCard) => giftCard.name === selectedBrand);
+  const selectedCryptoOption = cryptoOptions.find((crypto) => crypto.asset === selectedCrypto);
   const numericAmount = Number(amount);
+  const numericCryptoUsdValue = Number(cryptoUsdValue);
   const estimatedPayout = selectedGiftCard?.available && Number.isFinite(numericAmount) && numericAmount > 0
     ? Math.round(numericAmount * selectedGiftCard.nairaPayoutPerUsd)
+    : null;
+  const estimatedCryptoPayout = selectedCryptoOption?.available && Number.isFinite(numericCryptoUsdValue) && numericCryptoUsdValue > 0
+    ? Math.round(numericCryptoUsdValue * selectedCryptoOption.nairaPayoutPerUsd)
     : null;
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,16 +173,46 @@ export default function SellGiftcardPage() {
         return;
       }
 
-      setMessage(`Order ${data.orderId} submitted. Expected payout: ${formatNaira(data.expectedPayout)}.`);
-      event.currentTarget.reset();
-      setSelectedBrand("");
-      setAmount("");
-      setImagePreview(null);
-      setImageBase64(null);
+      router.push(data.tradeRoom ?? `/trade/${data.orderId}`);
     } catch {
       setMessage("A network error occurred. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCryptoWithdrawal = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const selected = cryptoOptions.find((crypto) => crypto.asset === selectedCrypto);
+    if (!selected?.available) {
+      setCryptoMessage("Choose a crypto asset with an active payout rate.");
+      return;
+    }
+    if (!defaultBankAccount) {
+      setCryptoMessage("Save a default bank account in your dashboard before requesting a withdrawal.");
+      return;
+    }
+
+    setCryptoSubmitting(true);
+    setCryptoMessage("");
+    try {
+      const response = await fetch("/api/crypto-withdrawals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ asset: selectedCrypto, usdValue: Number(cryptoUsdValue) }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setCryptoMessage(data.error ?? "We could not submit your withdrawal request.");
+        return;
+      }
+      setCryptoMessage(`Withdrawal ${data.orderId} submitted for Admin review. Expected payout: ${formatNaira(data.expectedPayout)}.`);
+      setSelectedCrypto("");
+      setCryptoUsdValue("");
+    } catch {
+      setCryptoMessage("A network error occurred. Please try again.");
+    } finally {
+      setCryptoSubmitting(false);
     }
   };
 
@@ -133,15 +223,26 @@ export default function SellGiftcardPage() {
   return (
     <main className="fexex-surface min-h-screen bg-[#161818] px-4 py-8 text-[#f4f3ee] sm:py-12">
       <div className="mx-auto w-full max-w-xl">
-        <Link href="/" aria-label="Fexex home">
-          <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" />
-        </Link>
+        <header className="flex items-center justify-between gap-4">
+          <Link href="/" aria-label="Fexex home">
+            <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/wallet" className="rounded-lg bg-[#2a2e2d] px-4 py-2 text-sm font-semibold text-[#f4f3ee] transition hover:bg-[#343a38]">Wallet</Link>
+            <ProfileMenu username={session?.user?.username} avatarData={session?.user?.avatarData} />
+          </div>
+        </header>
         <div className="mt-7 rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-6 shadow-2xl shadow-black/30 sm:p-8">
           <p className="text-sm font-semibold text-[#c6f65c]">NAIRA GIFT CARD PAYOUTS</p>
           <h1 className="mt-2 text-3xl font-semibold">Sell a gift card</h1>
-          <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Choose a card, enter its USD value, and see your Naira payout update instantly. <Link href="/giftcard-calculator" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Check live rates first →</Link></p>
+          <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Choose a card, enter its USD value, and see your Naira payout update instantly.</p>
 
-          <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+          <nav aria-label="Trade type" className="mt-6 grid grid-cols-2 rounded-xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-1">
+            <button type="button" onClick={() => setTradeType("giftcard")} aria-pressed={tradeType === "giftcard"} className={`rounded-lg px-3 py-2.5 text-center text-sm font-bold transition ${tradeType === "giftcard" ? "bg-[#c6f65c] text-[#161818]" : "text-[#d7dbd4] hover:bg-[#2a2e2d] hover:text-[#c6f65c]"}`}>Sell Giftcard</button>
+            <button type="button" onClick={() => setTradeType("crypto")} aria-pressed={tradeType === "crypto"} className={`rounded-lg px-3 py-2.5 text-center text-sm font-bold transition ${tradeType === "crypto" ? "bg-[#d6c7ff] text-[#161818]" : "text-[#d7dbd4] hover:bg-[#2a2e2d] hover:text-[#d6c7ff]"}`}>Sell Crypto</button>
+          </nav>
+
+          {tradeType === "giftcard" ? <form onSubmit={handleSubmit} className="mt-7 space-y-5">
             <fieldset>
               <legend className="mb-3 text-sm font-medium text-[#d7dbd4]">Choose the gift card you are selling</legend>
               {ratesLoading ? (
@@ -160,7 +261,9 @@ export default function SellGiftcardPage() {
                         aria-pressed={selected}
                         className={`rounded-2xl border p-4 text-left transition ${selected ? "border-[#c6f65c] bg-[#c6f65c]/10" : "border-[#f4f3ee]/10 bg-[#1a1d1d] hover:border-[#d6c7ff]/60"}`}
                       >
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d6c7ff]/15 text-[10px] font-bold tracking-wide text-[#e5dcff]">{giftCard.code}</span>
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f4f3ee]/10 bg-[#f4f3ee] p-1.5">
+                          <Image src={giftCard.icon} alt={`${giftCard.name} icon`} width={32} height={32} className="h-full w-full object-contain" />
+                        </span>
                         <span className="mt-5 block text-sm font-semibold text-[#f4f3ee]">{giftCard.name}</span>
                         <span className={`mt-1 block text-xs font-medium ${giftCard.available ? "text-[#c6f65c]" : "text-[#777a75]"}`}>
                           {giftCard.available ? `${formatNaira(giftCard.nairaPayoutPerUsd)} / $1` : "Currently paused"}
@@ -209,7 +312,34 @@ export default function SellGiftcardPage() {
             <button type="submit" disabled={loading || !selectedGiftCard?.available} className="w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:opacity-60">
               {loading ? "Submitting..." : "Submit gift card"}
             </button>
-          </form>
+          </form> : <form onSubmit={handleCryptoWithdrawal} className="mt-7 space-y-5">
+            <div>
+              <p className="text-sm font-semibold text-[#d6c7ff]">CRYPTO TO NAIRA WITHDRAWAL</p>
+              <h2 className="mt-2 text-2xl font-semibold">Sell crypto</h2>
+              <p className="mt-2 text-sm leading-6 text-[#a9afa9]">Select the crypto you are selling, enter its USD value, and submit the Naira withdrawal request for Admin review.</p>
+            </div>
+            <fieldset>
+              <legend className="mb-3 text-sm font-medium text-[#d7dbd4]">Choose the crypto you are selling</legend>
+              {cryptoRatesLoading ? <div className="rounded-xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-4 text-sm text-[#a9afa9]">Loading today&apos;s crypto rates...</div> : cryptoRateError ? <p role="alert" className="rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200">{cryptoRateError}</p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {cryptoOptions.map((crypto) => {
+                  const selected = crypto.asset === selectedCrypto;
+                  return <button key={crypto.asset} type="button" onClick={() => setSelectedCrypto(crypto.asset)} aria-pressed={selected} className={`rounded-2xl border p-4 text-left transition ${selected ? "border-[#d6c7ff] bg-[#d6c7ff]/10" : "border-[#f4f3ee]/10 bg-[#1a1d1d] hover:border-[#d6c7ff]/60"}`}>
+                    <Image src={`/crypto-icons/${crypto.asset.toLowerCase()}.svg`} alt="" width={40} height={40} className="h-10 w-10" />
+                    <span className="mt-5 block text-sm font-semibold text-[#f4f3ee]">{crypto.asset}</span>
+                    <span className={`mt-1 block text-xs font-medium ${crypto.available ? "text-[#c6f65c]" : "text-[#777a75]"}`}>{crypto.available ? `${formatNaira(crypto.nairaPayoutPerUsd)} / $1` : "Currently paused"}</span>
+                  </button>;
+                })}
+              </div>}
+            </fieldset>
+            <div>
+              <label htmlFor="crypto-usd-value" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Crypto value you are selling (USD)</label>
+              <input id="crypto-usd-value" type="number" inputMode="decimal" min="0.01" step="0.01" required value={cryptoUsdValue} onChange={(event) => setCryptoUsdValue(event.target.value)} placeholder="e.g. 100" className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#d6c7ff] focus:ring-2 focus:ring-[#d6c7ff]/20" />
+            </div>
+            {selectedCryptoOption && <div className="rounded-2xl border border-[#d6c7ff]/25 bg-[#d6c7ff]/10 p-4"><p className="text-xs font-semibold tracking-wide text-[#e5dcff]">LIVE NAIRA WITHDRAWAL ESTIMATE</p><p className="mt-2 text-sm text-[#d7dbd4]">{selectedCryptoOption.asset} pays {formatNaira(selectedCryptoOption.nairaPayoutPerUsd)} for every $1 of submitted value.</p><p className="mt-2 text-2xl font-bold text-[#f4f3ee]">{estimatedCryptoPayout === null ? "Enter a crypto value" : formatNaira(estimatedCryptoPayout)}</p></div>}
+              <div className="rounded-2xl border border-[#c6f65c]/25 bg-[#c6f65c]/10 p-4"><p className="text-xs font-semibold tracking-wide text-[#d8ff96]">DEFAULT WITHDRAWAL ACCOUNT</p>{defaultBankAccount ? <><p className="mt-2 font-semibold text-[#f4f3ee]">{defaultBankAccount.bankName}</p><p className="text-sm text-[#d7dbd4]">{defaultBankAccount.legalName} · ••••••{defaultBankAccount.bankAccountNumber.slice(-4)}</p></> : <p className="mt-2 text-sm text-[#d7dbd4]">Save a default bank account in <Link href="/wallet#settings" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Wallet settings</Link> before withdrawing.</p>}</div>
+            {cryptoMessage && <p role="status" className="rounded-xl bg-[#d6c7ff]/10 px-4 py-3 text-sm text-[#e5dcff]">{cryptoMessage}</p>}
+            <button type="submit" disabled={cryptoSubmitting || !selectedCryptoOption?.available || !defaultBankAccount} className="w-full rounded-xl bg-[#d6c7ff] px-4 py-3 font-bold text-[#161818] transition hover:bg-[#e5dcff] disabled:cursor-not-allowed disabled:opacity-60">{cryptoSubmitting ? "Submitting withdrawal..." : "Request withdrawal"}</button>
+          </form>}
         </div>
       </div>
     </main>

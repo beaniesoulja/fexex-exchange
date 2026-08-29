@@ -65,6 +65,10 @@ export async function POST(req: Request) {
         },
       });
 
+      await tx.tradeMessage.create({
+        data: { orderId: savedOrder.id, senderId: user.id, body: "Gift card submitted. I am ready for Admin review." },
+      });
+
       return savedOrder;
     });
     try {
@@ -85,6 +89,7 @@ export async function POST(req: Request) {
       orderId: order.id,
       expectedPayout: totalValue,
       currency: "NGN",
+      tradeRoom: `/trade/${order.id}`,
     }, { status: 201 });
 
   } catch (error: unknown) {

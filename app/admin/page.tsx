@@ -1,6 +1,7 @@
 // app/admin/page.tsx
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -18,6 +19,10 @@ interface Order {
   giftCardCountry: string | null;
   giftCardCode: string | null;
   giftCardImage: string | null; // <-- Added this
+  cryptoAsset: string | null;
+  payoutBankName: string | null;
+  payoutAccountName: string | null;
+  payoutBankAccountNumber: string | null;
   createdAt: string;
   user: { email: string };
 }
@@ -29,9 +34,17 @@ interface GiftCardRate {
   isActive: boolean;
 }
 
+interface CryptoRate {
+  id: string;
+  asset: string;
+  nairaPayoutPerUsd: number;
+  isActive: boolean;
+}
+
 interface Pricing {
   usdToNairaRate: number;
   giftCardRates: GiftCardRate[];
+  cryptoRates: CryptoRate[];
   updatedAt: string;
 }
 
@@ -173,7 +186,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
         void fetchAnalytics();
-        alert(`✅ ${action === "APPROVE" ? "USDT payout initiated" : "Order rejected"}!`);
+        alert(`✅ ${action === "APPROVE" ? "Withdrawal approved" : "Order rejected"}!`);
       } else {
         const data = await res.json().catch(() => null);
         alert(`❌ ${data?.error ?? "Failed to process order."}`);
@@ -203,6 +216,20 @@ export default function AdminDashboard() {
     } : current);
   };
 
+  const updateCryptoRate = (asset: string, nairaPayoutPerUsd: number) => {
+    setPricing((current) => current ? {
+      ...current,
+      cryptoRates: current.cryptoRates.map((rate) => rate.asset === asset ? { ...rate, nairaPayoutPerUsd } : rate),
+    } : current);
+  };
+
+  const toggleCryptoBuying = (asset: string, isActive: boolean) => {
+    setPricing((current) => current ? {
+      ...current,
+      cryptoRates: current.cryptoRates.map((rate) => rate.asset === asset ? { ...rate, isActive } : rate),
+    } : current);
+  };
+
   const savePricing = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!pricing) return;
@@ -216,6 +243,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           usdToNairaRate: pricing.usdToNairaRate,
           giftCardRates: pricing.giftCardRates.map(({ brand, nairaPayoutPerUsd, isActive }) => ({ brand, nairaPayoutPerUsd, isActive })),
+          cryptoRates: pricing.cryptoRates.map(({ asset, nairaPayoutPerUsd, isActive }) => ({ asset, nairaPayoutPerUsd, isActive })),
         }),
       });
       const data = await res.json();
@@ -228,6 +256,7 @@ export default function AdminDashboard() {
         ...current,
         usdToNairaRate: data.usdToNairaRate,
         giftCardRates: data.giftCardRates,
+        cryptoRates: data.cryptoRates,
       } : current);
       setPricingMessage("Pricing saved. New trades will use these rates.");
     } catch {
@@ -251,7 +280,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
             <span className="text-xs text-[#a9afa9]">Updates automatically</span>
-            <ProfileMenu email={session?.user?.email} />
+            <ProfileMenu username={session?.user?.username} avatarData={session?.user?.avatarData} />
           </div>
         </div>
 
@@ -429,6 +458,31 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              <div>
+                <div className="mb-3 flex items-baseline justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-[#f4f3ee]">Crypto payout rates in Naira per USD</h3>
+                  <span className="text-xs text-[#a9afa9]">Toggle assets on only when buying</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {pricing.cryptoRates.map((rate) => (
+                    <label key={rate.id} className="rounded-xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-3">
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-[#d7dbd4]">{rate.asset}</span>
+                        <span className="flex items-center gap-2 text-xs font-semibold text-[#a9afa9]">
+                          Buying
+                          <input type="checkbox" checked={rate.isActive} onChange={(event) => toggleCryptoBuying(rate.asset, event.target.checked)} className="peer sr-only" />
+                          <span aria-hidden="true" className="relative h-6 w-11 rounded-full bg-[#343a38] transition peer-checked:bg-[#c6f65c] after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-[#f4f3ee] after:transition peer-checked:after:translate-x-5" />
+                        </span>
+                      </span>
+                      <span className="mt-2 flex items-center gap-2">
+                        <input type="number" inputMode="decimal" min="0" max="1000000" step="1" required value={rate.nairaPayoutPerUsd} onChange={(event) => updateCryptoRate(rate.asset, Number(event.target.value))} className="min-w-0 flex-1 rounded-lg border border-[#f4f3ee]/15 bg-[#202323] px-3 py-2 text-sm text-[#f4f3ee] outline-none focus:border-[#d6c7ff]" />
+                        <span className="text-xs text-[#a9afa9]">₦ / $1</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               {pricingMessage && <p role="status" className="text-sm font-medium text-[#d6c7ff]">{pricingMessage}</p>}
               <button type="submit" disabled={pricingSaving} className="w-full rounded-xl bg-[#d6c7ff] px-5 py-3 font-bold text-[#161818] transition hover:bg-[#e5dcff] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
                 {pricingSaving ? "Saving prices..." : "Save daily pricing"}
@@ -450,7 +504,7 @@ export default function AdminDashboard() {
                 <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <h2 className="text-xl font-bold text-[#f4f3ee]">
-                      {order.giftCardBrand} ({order.giftCardCountry}) - {formatNaira(order.amount)}
+                      {order.type === "SELL_CRYPTO" ? `${order.cryptoAsset ?? "Crypto"} withdrawal · $${order.amount.toLocaleString()}` : `${order.giftCardBrand} (${order.giftCardCountry}) - $${order.amount.toLocaleString()}`}
                     </h2>
                     <p className="text-sm text-[#a9afa9]">User: {order.user.email}</p>
                     <p className="text-sm text-[#a9afa9]">
@@ -465,6 +519,14 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="mb-4 space-y-3 rounded-lg bg-[#1a1d1d] p-4">
+                  {order.type === "SELL_CRYPTO" ? (
+                    <div className="space-y-1 text-sm text-[#d7dbd4]">
+                      <p className="text-xs font-semibold text-[#a9afa9]">DEFAULT WITHDRAWAL ACCOUNT</p>
+                      <p><strong>Bank:</strong> {order.payoutBankName ?? "Not saved"}</p>
+                      <p><strong>Account name:</strong> {order.payoutAccountName ?? "Not saved"}</p>
+                      <p><strong>Account number:</strong> {order.payoutBankAccountNumber ?? "Not saved"}</p>
+                    </div>
+                  ) : <>
                   {order.giftCardImage && (
                     <div className="mb-3">
                       <p className="mb-1 text-xs font-semibold text-[#a9afa9]">UPLOADED IMAGE:</p>
@@ -482,15 +544,17 @@ export default function AdminDashboard() {
                     <p><strong>Code:</strong> {order.giftCardCode?.split(' | ')[0] || 'N/A'}</p>
                     <p><strong>PIN:</strong> {order.giftCardCode?.split(' | ')[1] || 'N/A'}</p>
                   </div> {/* 2. FIXED: Removed the word "recent" from the closing tag */}
+                  </>}
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row">
+                  {order.type === "SELL_GIFTCARD" && <Link href={`/trade/${order.id}`} className="flex-1 rounded-lg border border-[#d6c7ff]/50 px-4 py-2 text-center font-semibold text-[#e5dcff] transition hover:bg-[#d6c7ff]/10">Open escrow chat</Link>}
                   <button
                     onClick={() => handleAction(order.id, "APPROVE")}
                     disabled={actionLoading === order.id}
                     className="flex-1 rounded-lg bg-[#c6f65c] py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86] disabled:opacity-50"
                   >
-                    {actionLoading === order.id ? "Processing..." : "✅ Approve & Pay"}
+                    {actionLoading === order.id ? "Processing..." : order.type === "SELL_CRYPTO" ? "✅ Approve withdrawal" : "✅ Approve & Pay"}
                   </button>
                   <button
                     onClick={() => handleAction(order.id, "REJECT")}

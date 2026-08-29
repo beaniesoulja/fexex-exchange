@@ -9,9 +9,10 @@ import { Turnstile } from "@/components/turnstile";
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [resetUrl, setResetUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) || process.env.NODE_ENV !== "production";
+  const turnstileEnabled = process.env.NODE_ENV === "production" && Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -21,6 +22,7 @@ export default function ForgotPasswordPage() {
     }
     setLoading(true);
     setMessage("");
+    setResetUrl("");
     try {
       const response = await fetch("/api/password-reset/request", {
         method: "POST",
@@ -29,6 +31,7 @@ export default function ForgotPasswordPage() {
       });
       const data = await response.json();
       setMessage(data.message ?? "If an account matches that email, you will receive reset instructions shortly.");
+      setResetUrl(typeof data.resetUrl === "string" ? data.resetUrl : "");
     } catch {
       setMessage("If an account matches that email, you will receive reset instructions shortly.");
     } finally {
@@ -49,6 +52,7 @@ export default function ForgotPasswordPage() {
           </div>
           <Turnstile action="password_reset" onTokenChange={setTurnstileToken} />
           {message && <p role="status" className="rounded-xl bg-[#c6f65c]/10 px-4 py-3 text-sm text-[#d8ff96]">{message}</p>}
+          {resetUrl && <Link href={resetUrl} className="block rounded-xl border border-[#c6f65c]/40 px-4 py-3 text-center text-sm font-bold text-[#c6f65c] hover:bg-[#c6f65c]/10">Continue to password reset</Link>}
           <button type="submit" disabled={loading || (turnstileEnabled && !turnstileToken)} className="w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:bg-[#d9ff86] disabled:opacity-60">{loading ? "Sending..." : "Email reset link"}</button>
         </form>
         <p className="mt-7 text-center text-sm text-[#a9afa9]">Remembered it? <Link href="/login" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Log in</Link></p>

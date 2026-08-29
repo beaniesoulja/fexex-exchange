@@ -52,6 +52,17 @@ export async function PATCH(req: Request) {
     }
 
     if (action === 'APPROVE') {
+      if (order.type === 'SELL_CRYPTO') {
+        const approvedOrder = await prisma.order.updateMany({
+          where: { id: orderId, status: 'PENDING' },
+          data: { status: 'COMPLETED' },
+        });
+        if (approvedOrder.count !== 1) {
+          return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });
+        }
+        return NextResponse.json({ message: 'Crypto withdrawal approved. Pay the saved default bank account.' }, { status: 200 });
+      }
+
       if (!order.user.cryptoWalletAddress || order.user.cryptoWalletAddress.length < 10) {
         return NextResponse.json({ error: 'The user has not saved a valid USDT TRC20 payout wallet.' }, { status: 400 });
       }

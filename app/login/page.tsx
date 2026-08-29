@@ -4,19 +4,18 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 import { Turnstile } from "@/components/turnstile";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [failedPasswordAttempts, setFailedPasswordAttempts] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) || process.env.NODE_ENV !== "production";
-  const router = useRouter();
+  const turnstileEnabled = process.env.NODE_ENV === "production" && Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,15 +42,16 @@ export default function LoginPage() {
       }
       setLoading(false);
     } else {
-      // 1. Login successful! Now let's check their role to send them to the right place.
+      // Confirm the browser has received the session cookie before leaving this page.
       const session = await getSession();
-      
-      // 2. Route Admins to /admin, and regular Users to /dashboard
-      if (session?.user?.role === "ADMIN") {
-        router.push("/admin");
-      } else {
-        router.push("/dashboard?welcome=1");
+      if (!session?.user) {
+        setError("Your sign-in was accepted, but your session did not start. Please try again.");
+        setLoading(false);
+        return;
       }
+
+      // A full navigation prevents protected pages from reading a stale client session.
+      window.location.assign(session.user.role === "ADMIN" ? "/admin" : "/trade");
     }
   };
 
@@ -65,11 +65,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-[#d7dbd4]">Email</label>
+            <label className="mb-1 block text-sm font-medium text-[#d7dbd4]">Email or username</label>
             <input 
-              type="email" 
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
               required 
               className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] p-3 text-[#f4f3ee] outline-none focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20"
             />
@@ -77,13 +78,16 @@ export default function LoginPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-[#d7dbd4]">Password</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-              className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] p-3 text-[#f4f3ee] outline-none focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20"
-            />
+            <div className="relative">
+              <input
+                type={isPasswordVisible ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] p-3 pr-16 text-[#f4f3ee] outline-none focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20"
+              />
+              <button type="button" onClick={() => setIsPasswordVisible((visible) => !visible)} className="absolute inset-y-0 right-0 px-4 text-xs font-bold text-[#c6f65c] hover:text-[#d9ff86]">{isPasswordVisible ? "Hide" : "Show"}</button>
+            </div>
           </div>
 
           <Turnstile action="login" onTokenChange={setTurnstileToken} />

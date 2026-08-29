@@ -37,6 +37,11 @@ export async function GET() {
       email: userData.email,
       username: userData.username,
       legalName: userData.legalName,
+      dateOfBirth: userData.dateOfBirth,
+      avatarData: userData.avatarData,
+      bio: userData.bio, nameDisplay: userData.nameDisplay, preferredCurrency: userData.preferredCurrency, timezone: userData.timezone,
+      phoneCountryCode: userData.phoneCountryCode,
+      phoneNumber: userData.phoneNumber,
       kycVerified: userData.kycVerified,
       cryptoWalletAddress: userData.cryptoWalletAddress,
       bankName: userData.bankName,
@@ -60,9 +65,37 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const avatarData = typeof body.avatarData === "string" ? body.avatarData : "";
     const walletAddress = typeof body.walletAddress === "string" ? body.walletAddress.trim() : "";
     const bankName = typeof body.bankName === "string" ? body.bankName.trim() : "";
     const bankAccountNumber = typeof body.bankAccountNumber === "string" ? body.bankAccountNumber.replace(/\s/g, "") : "";
+    if (body.preferences) {
+      const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      const phoneNumber = typeof body.phoneNumber === "string" ? body.phoneNumber.replace(/\D/g, "").slice(0, 10) : "";
+      const bio = typeof body.bio === "string" ? body.bio.trim().slice(0, 180) : "";
+      const nameDisplay = ["INITIALS", "FULL_NAME", "USERNAME"].includes(body.nameDisplay) ? body.nameDisplay : "USERNAME";
+      const preferredCurrency = body.preferredCurrency === "USD" ? "USD" : "NGN";
+      const timezone = typeof body.timezone === "string" && body.timezone.length < 80 ? body.timezone : "Africa/Lagos";
+      const current = await prisma.user.findUnique({ where:{id:session.user.id} }); if(!current) return NextResponse.json({error:"User not found"},{status:404});
+      const taken = await prisma.user.findFirst({where:{id:{not:current.id},OR:[{username},{email},{phoneNumber}]}}); if(taken) return NextResponse.json({error:"Username, email, or phone number is already in use."},{status:409});
+      await prisma.$transaction([prisma.user.update({where:{id:current.id},data:{username,email,phoneNumber,bio,nameDisplay,preferredCurrency,timezone}}),...(email!==current.email?[prisma.profileAudit.create({data:{userId:current.id,type:"EMAIL_CHANGED",details:`${current.legalName??"User"} (${current.phoneNumber??"no phone"}) changed email from ${current.email} to ${email}.`}})]:[])]);
+      return NextResponse.json({message:"Profile saved."});
+    }
+
+    if (avatarData) {
+      const isSupportedImage = /^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(avatarData);
+      if (!isSupportedImage || avatarData.length > 1_500_000) {
+        return NextResponse.json({ error: "Choose a JPG, PNG, or WebP image smaller than 1 MB." }, { status: 400 });
+      }
+
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { avatarData },
+      });
+
+      return NextResponse.json({ message: "Profile photo saved successfully!", avatarData }, { status: 200 });
+    }
 
     if (walletAddress) {
       if (walletAddress.length < 10) {
