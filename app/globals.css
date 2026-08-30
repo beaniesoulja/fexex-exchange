@@ -44,3 +44,14 @@ body {
     radial-gradient(circle at 78% -8%, rgb(214 199 255 / 18%), transparent 34rem),
     radial-gradient(circle at 4% 26%, rgb(198 246 92 / 8%), transparent 24rem);
 }
+
+.fexex-hero-orb { pointer-events: none; position: absolute; z-index: -1; border-radius: 9999px; filter: blur(1px); }
+.fexex-hero-orb-one { top: -3rem; left: -8rem; width: 15rem; height: 15rem; border: 1px solid rgb(198 246 92 / 18%); background: radial-gradient(circle at 35% 35%, rgb(198 246 92 / 14%), transparent 63%); animation: fexex-float 8s ease-in-out infinite; }
+.fexex-hero-orb-two { right: -2rem; top: -3rem; width: 12rem; height: 12rem; border: 1px solid rgb(214 199 255 / 24%); background: radial-gradient(circle at 35% 35%, rgb(214 199 255 / 16%), transparent 64%); animation: fexex-float 9s ease-in-out -3s infinite reverse; }
+.fexex-marquee-track { display: flex; width: max-content; animation: fexex-marquee 28s linear infinite; }
+.fexex-marquee:hover .fexex-marquee-track { animation-play-state: paused; }
+
+@keyframes fexex-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes fexex-float { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, 0.9rem, 0) scale(1.035); } }
+
+@media (prefers-reduced-motion: reduce) { .fexex-hero-orb, .fexex-marquee-track { animation: none; } }

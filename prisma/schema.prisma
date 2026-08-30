@@ -137,6 +137,7 @@ model Order {
 
   giftCardBrand   String?
   giftCardCountry String?
+  giftCardSubcategory String?
   giftCardImage   String?
   giftCardCode    String?
   cryptoAsset     String?
@@ -206,16 +207,39 @@ model PricingSettings {
 model GiftCardRate {
   id             String   @id @default(cuid())
   brand          String   @unique
+  code           String?
+  icon           String?
   payoutPercent  Float    @default(0)
   nairaPayoutPerThousand Float @default(0)
   nairaPayoutPerUsd Float @default(0)
   isActive       Boolean  @default(false)
   updatedAt      DateTime @updatedAt
+  subcategories  GiftCardSubcategory[]
+}
+
+model GiftCardSubcategory {
+  id                   String   @id @default(cuid())
+  giftCardRateId       String
+  label                String
+  country              String?
+  cardType             String?
+  nairaPayoutPerUsd    Float    @default(0)
+  isActive             Boolean  @default(false)
+  sortOrder            Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  giftCardRate GiftCardRate @relation(fields: [giftCardRateId], references: [id], onDelete: Cascade)
+
+  @@unique([giftCardRateId, label])
+  @@index([giftCardRateId, isActive])
 }
 
 model CryptoRate {
   id                   String   @id @default(cuid())
   asset                String   @unique
+  name                 String?
+  icon                 String?
   nairaPayoutPerUsd    Float    @default(0)
   isActive             Boolean  @default(false)
   updatedAt            DateTime @updatedAt

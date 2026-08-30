@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
-import { cryptoAssets } from "@/lib/crypto-assets";
-import { ensurePricingDefaults } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
@@ -16,11 +14,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const asset = typeof body.asset === "string" ? body.asset.trim().toUpperCase() : "";
     const usdValue = Math.round(Number(body.usdValue) * 100) / 100;
-    const allowedAssets = new Set(cryptoAssets.map((crypto) => crypto.asset));
-
-    if (!allowedAssets.has(asset)) {
-      return NextResponse.json({ error: "Choose a supported crypto asset." }, { status: 400 });
-    }
+    if (!asset) return NextResponse.json({ error: "Choose a crypto asset." }, { status: 400 });
     if (!Number.isFinite(usdValue) || usdValue < 0.01) {
       return NextResponse.json({ error: "Enter a valid crypto value in USD." }, { status: 400 });
     }
@@ -33,9 +27,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Save your default bank account before requesting a withdrawal." }, { status: 400 });
     }
 
-    await ensurePricingDefaults();
     const rate = await prisma.cryptoRate.findUnique({ where: { asset } });
-    if (!rate?.isActive || rate.nairaPayoutPerUsd <= 0) {
+    if (!rate) {
+      return NextResponse.json({ error: "Choose a supported crypto asset." }, { status: 400 });
+    }
+    if (!rate.isActive || rate.nairaPayoutPerUsd <= 0) {
       return NextResponse.json({ error: "This crypto asset is not currently available for Naira withdrawals." }, { status: 400 });
     }
 

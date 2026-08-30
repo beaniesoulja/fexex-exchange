@@ -15,19 +15,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Please log in to submit a gift card." }, { status: 401 });
     }
 
-    const { brand, country, amount, cardCode, cardPin, imageBase64 } = body;
+    const { brand, country, subcategory, amount, cardCode, cardPin, imageBase64 } = body;
     const user = await prisma.user.findUnique({ where: { id: session.user.id } });
     if (!user) {
       return NextResponse.json({ error: "Your Fexex account could not be found." }, { status: 404 });
     }
 
-    if (typeof brand !== 'string' || country !== 'US') {
+    if (typeof brand !== 'string' || typeof country !== 'string' || country.length > 80) {
       return NextResponse.json({ error: "Choose a supported gift card for a Naira payout." }, { status: 400 });
     }
 
     await ensurePricingDefaults();
     const giftCardRate = await prisma.giftCardRate.findUnique({ where: { brand } });
-    const nairaPayoutPerUsd = giftCardRate?.nairaPayoutPerUsd ?? 0;
+    const selectedSubcategory = typeof subcategory === 'string' && subcategory.trim()
+      ? await prisma.giftCardSubcategory.findUnique({ where: { giftCardRateId_label: { giftCardRateId: giftCardRate?.id ?? '', label: subcategory.trim() } } })
+      : null;
+    const activeSubcategoryCount = giftCardRate
+      ? await prisma.giftCardSubcategory.count({ where: { giftCardRateId: giftCardRate.id, isActive: true } })
+      : 0;
+    if (activeSubcategoryCount > 0 && !selectedSubcategory) {
+      return NextResponse.json({ error: "Choose the country and card type you are selling." }, { status: 400 });
+    }
+    if (typeof subcategory === 'string' && subcategory.trim() && (!selectedSubcategory || !selectedSubcategory.isActive || selectedSubcategory.nairaPayoutPerUsd <= 0)) {
+      return NextResponse.json({ error: "This gift-card sub-category is not currently available for Naira payouts." }, { status: 400 });
+    }
+    const nairaPayoutPerUsd = selectedSubcategory?.nairaPayoutPerUsd ?? giftCardRate?.nairaPayoutPerUsd ?? 0;
     if (!giftCardRate?.isActive || nairaPayoutPerUsd <= 0) {
       return NextResponse.json({ error: "This gift card is not currently available for Naira payouts." }, { status: 400 });
     }
@@ -50,7 +62,8 @@ export async function POST(req: Request) {
           rate: rate,
           totalValue: totalValue,
           giftCardBrand: brand,
-          giftCardCountry: country,
+          giftCardCountry: selectedSubcategory?.country ?? country,
+          giftCardSubcategory: selectedSubcategory?.label ?? null,
           giftCardCode: `${cardCode || 'N/A'} | ${cardPin || 'N/A'}`,
           giftCardImage: imageBase64,
         },

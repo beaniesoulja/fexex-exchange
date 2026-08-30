@@ -6,19 +6,35 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    await ensurePricingDefaults();
-    const savedRates = await prisma.giftCardRate.findMany();
-    const ratesByBrand = new Map(savedRates.map((rate) => [rate.brand, rate]));
+    let savedRates = await prisma.giftCardRate.findMany({
+      include: { subcategories: { where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { label: "asc" }] } },
+    });
+
+    // A populated catalog is already the source of truth. Avoid reseeding it
+    // during every customer request, especially when crypto rates load too.
+    if (savedRates.length === 0) {
+      await ensurePricingDefaults();
+      savedRates = await prisma.giftCardRate.findMany({
+        include: { subcategories: { where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { label: "asc" }] } },
+      });
+    }
 
     return NextResponse.json({
       currency: "NGN",
-      giftCards: giftCards.map((giftCard) => {
-        const rate = ratesByBrand.get(giftCard.name);
-        const nairaPayoutPerUsd = rate?.nairaPayoutPerUsd ?? 0;
+      giftCards: savedRates.map((rate) => {
+        const builtInCard = giftCards.find((giftCard) => giftCard.name === rate.brand);
         return {
-          ...giftCard,
-          nairaPayoutPerUsd,
-          available: rate?.isActive === true && nairaPayoutPerUsd > 0,
+          name: rate.brand,
+          code: rate.code ?? builtInCard?.code ?? rate.brand.toUpperCase().replace(/[^A-Z0-9]+/g, "-").slice(0, 16),
+          icon: rate.icon ?? builtInCard?.icon ?? "/giftcard-icons/generic.svg",
+          nairaPayoutPerUsd: rate.nairaPayoutPerUsd,
+          available: rate.isActive === true && rate.nairaPayoutPerUsd > 0,
+          subcategories: rate.subcategories.map((subcategory) => ({
+            label: subcategory.label,
+            country: subcategory.country,
+            cardType: subcategory.cardType,
+            nairaPayoutPerUsd: subcategory.nairaPayoutPerUsd,
+          })),
         };
       }),
     });
