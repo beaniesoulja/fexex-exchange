@@ -38,6 +38,7 @@ export async function GET() {
       username: userData.username,
       legalName: userData.legalName,
       dateOfBirth: userData.dateOfBirth,
+      dateOfBirthChangedAt: userData.dateOfBirthChangedAt,
       avatarData: userData.avatarData,
       bio: userData.bio, nameDisplay: userData.nameDisplay, preferredCurrency: userData.preferredCurrency, timezone: userData.timezone,
       phoneCountryCode: userData.phoneCountryCode,
@@ -72,15 +73,74 @@ export async function POST(req: Request) {
     if (body.preferences) {
       const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-      const phoneNumber = typeof body.phoneNumber === "string" ? body.phoneNumber.replace(/\D/g, "").slice(0, 10) : "";
+      const phoneCountryCode = typeof body.phoneCountryCode === "string" ? `+${body.phoneCountryCode.replace(/\D/g, "").slice(0, 3)}` : "";
+      const phoneNumber = typeof body.phoneNumber === "string" ? body.phoneNumber.replace(/\D/g, "") : "";
+      const dateOfBirthValue = typeof body.dateOfBirth === "string" ? body.dateOfBirth.trim() : "";
       const bio = typeof body.bio === "string" ? body.bio.trim().slice(0, 180) : "";
       const nameDisplay = ["INITIALS", "FULL_NAME", "USERNAME"].includes(body.nameDisplay) ? body.nameDisplay : "USERNAME";
       const preferredCurrency = body.preferredCurrency === "USD" ? "USD" : "NGN";
-      const timezone = typeof body.timezone === "string" && body.timezone.length < 80 ? body.timezone : "Africa/Lagos";
-      const current = await prisma.user.findUnique({ where:{id:session.user.id} }); if(!current) return NextResponse.json({error:"User not found"},{status:404});
-      const taken = await prisma.user.findFirst({where:{id:{not:current.id},OR:[{username},{email},{phoneNumber}]}}); if(taken) return NextResponse.json({error:"Username, email, or phone number is already in use."},{status:409});
-      await prisma.$transaction([prisma.user.update({where:{id:current.id},data:{username,email,phoneNumber,bio,nameDisplay,preferredCurrency,timezone}}),...(email!==current.email?[prisma.profileAudit.create({data:{userId:current.id,type:"EMAIL_CHANGED",details:`${current.legalName??"User"} (${current.phoneNumber??"no phone"}) changed email from ${current.email} to ${email}.`}})]:[])]);
-      return NextResponse.json({message:"Profile saved."});
+      const timezone = typeof body.timezone === "string" ? body.timezone.trim() : "Africa/Lagos";
+
+      if (!/^[a-z0-9_]{3,24}$/.test(username)) return NextResponse.json({ error: "Choose a username with 3–24 letters, numbers, or underscores.", field: "username" }, { status: 400 });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 320) return NextResponse.json({ error: "Enter a valid email address.", field: "email" }, { status: 400 });
+      if (!/^\+\d{1,3}$/.test(phoneCountryCode) || !/^\d{10}$/.test(phoneNumber)) return NextResponse.json({ error: "Enter a valid country code and 10-digit phone number.", field: "phoneNumber" }, { status: 400 });
+      try { Intl.DateTimeFormat("en", { timeZone: timezone }); } catch { return NextResponse.json({ error: "Choose a valid timezone.", field: "timezone" }, { status: 400 }); }
+
+      const current = await prisma.user.findUnique({ where: { id: session.user.id } });
+      if (!current) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+      let dateOfBirth: Date | undefined;
+      if (dateOfBirthValue) {
+        const isoMatch = dateOfBirthValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        const shortMatch = dateOfBirthValue.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+        const parsedYear = isoMatch
+          ? Number(isoMatch[1])
+          : shortMatch
+            ? Number(shortMatch[3])
+            : NaN;
+        const parsedMonth = Number(isoMatch?.[2] ?? shortMatch?.[2]);
+        const parsedDay = Number(isoMatch?.[3] ?? shortMatch?.[1]);
+        const normalizedDate = `${parsedYear.toString().padStart(4, "0")}-${parsedMonth.toString().padStart(2, "0")}-${parsedDay.toString().padStart(2, "0")}`;
+        dateOfBirth = new Date(`${normalizedDate}T12:00:00.000Z`);
+        if (!Number.isFinite(parsedYear) || Number.isNaN(dateOfBirth.getTime()) || dateOfBirth.toISOString().slice(0, 10) !== normalizedDate || dateOfBirth > new Date()) {
+          return NextResponse.json({ error: "Enter your date of birth as DD-MM-YYYY, for example 29-08-1995.", field: "dateOfBirth" }, { status: 400 });
+        }
+      }
+
+      const dateOfBirthChanged = Boolean(
+        dateOfBirth && (!current.dateOfBirth || current.dateOfBirth.toISOString().slice(0, 10) !== dateOfBirth.toISOString().slice(0, 10)),
+      );
+      if (dateOfBirthChanged && current.dateOfBirth && current.dateOfBirthChangedAt) {
+        return NextResponse.json({ error: "Your date of birth has already been changed once and is now locked.", field: "dateOfBirth" }, { status: 400 });
+      }
+      const conflict = await prisma.user.findFirst({
+        where: { id: { not: current.id }, OR: [{ username }, { email }, { phoneCountryCode, phoneNumber }] },
+        select: { username: true, email: true, phoneCountryCode: true, phoneNumber: true },
+      });
+      if (conflict?.username === username) return NextResponse.json({ error: "That username is already taken.", field: "username" }, { status: 409 });
+      if (conflict?.email === email) return NextResponse.json({ error: "That email address is already registered.", field: "email" }, { status: 409 });
+      if (conflict?.phoneCountryCode === phoneCountryCode && conflict.phoneNumber === phoneNumber) return NextResponse.json({ error: "That phone number is already registered.", field: "phoneNumber" }, { status: 409 });
+
+      const emailChanged = email !== current.email;
+      const avatarStatus = current.avatarData ? "avatar uploaded" : "no avatar uploaded";
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: current.id },
+          data: {
+            username, email, phoneCountryCode, phoneNumber, bio, nameDisplay, preferredCurrency, timezone,
+            ...(dateOfBirth ? { dateOfBirth } : {}),
+            ...(dateOfBirthChanged && current.dateOfBirth ? { dateOfBirthChangedAt: new Date() } : {}),
+          },
+        }),
+        ...(emailChanged ? [prisma.profileAudit.create({
+          data: {
+            userId: current.id,
+            type: "EMAIL_CHANGED",
+            details: `Email changed by ${current.legalName ?? "User"}; previous email: ${current.email}; new email: ${email}; phone: ${phoneCountryCode} ${phoneNumber}; ${avatarStatus}.`,
+          },
+        })] : []),
+      ]);
+      return NextResponse.json({ message: "Profile saved.", username, email, phoneCountryCode, phoneNumber, bio, nameDisplay, preferredCurrency, timezone, dateOfBirth: dateOfBirth ?? current.dateOfBirth, dateOfBirthChangedAt: dateOfBirthChanged && current.dateOfBirth ? new Date() : current.dateOfBirthChangedAt });
     }
 
     if (avatarData) {

@@ -48,6 +48,7 @@ model User {
   username            String?  @unique
   legalName           String?
   dateOfBirth         DateTime?
+  dateOfBirthChangedAt DateTime?
   avatarData          String?
   phoneCountryCode    String?
   phoneNumber         String?

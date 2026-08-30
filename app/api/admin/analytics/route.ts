@@ -23,6 +23,7 @@ export async function GET() {
       declinedTrades,
       users,
       recentActivities,
+      recentProfileAudits,
       userTradeTotals,
     ] = await Promise.all([
       prisma.user.count(),
@@ -36,6 +37,11 @@ export async function GET() {
         orderBy: [{ lastActiveAt: "desc" }, { createdAt: "desc" }],
       }),
       prisma.userActivity.findMany({
+        take: 100,
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { email: true } } },
+      }),
+      prisma.profileAudit.findMany({
         take: 100,
         orderBy: { createdAt: "desc" },
         include: { user: { select: { email: true } } },
@@ -61,6 +67,10 @@ export async function GET() {
       .filter((user) => user.tradeCount > 0)
       .sort((a, b) => b.tradeVolume - a.tradeVolume || b.tradeCount - a.tradeCount)
       .slice(0, 10);
+    const activityFeed = [
+      ...recentActivities.map((activity) => ({ ...activity, type: activity.type })),
+      ...recentProfileAudits.map((audit) => ({ ...audit, type: audit.type })),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 100);
 
     return NextResponse.json({
       generatedAt: new Date(),
@@ -68,7 +78,7 @@ export async function GET() {
       stats: { totalUsers, onlineUsers, totalTrades, pendingTrades, successfulTrades, declinedTrades },
       users: usersWithStats,
       topUsers,
-      recentActivities,
+      recentActivities: activityFeed,
     });
   } catch (error) {
     console.error("Failed to load admin analytics:", error);

@@ -3,11 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 import { formatNaira } from "@/lib/currency";
-import { ProfileMenu } from "@/components/profile-menu";
+import { AppHeader } from "@/components/app-header";
 
 interface GiftCardOption {
   name: string;
@@ -31,9 +31,14 @@ interface DefaultBankAccount {
 }
 
 export default function SellGiftcardPage() {
+  return <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-[#161818] text-[#a9afa9]">Loading trade...</main>}><SellGiftcardContent /></Suspense>;
+}
+
+function SellGiftcardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [tradeType, setTradeType] = useState<"giftcard" | "crypto">("giftcard");
+  const searchParams = useSearchParams();
+  const tradeType = searchParams.get("type") === "crypto" ? "crypto" : "giftcard";
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [rateError, setRateError] = useState("");
@@ -221,25 +226,17 @@ export default function SellGiftcardPage() {
   }
 
   return (
-    <main className="fexex-surface min-h-screen bg-[#161818] px-4 py-8 text-[#f4f3ee] sm:py-12">
-      <div className="mx-auto w-full max-w-xl">
-        <header className="flex items-center justify-between gap-4">
-          <Link href="/" aria-label="Fexex home">
-            <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/wallet" className="rounded-lg bg-[#2a2e2d] px-4 py-2 text-sm font-semibold text-[#f4f3ee] transition hover:bg-[#343a38]">Wallet</Link>
-            <ProfileMenu username={session?.user?.username} avatarData={session?.user?.avatarData} />
-          </div>
-        </header>
+    <main className="fexex-surface min-h-screen bg-[#161818] text-[#f4f3ee]">
+      <AppHeader username={session?.user?.username} avatarData={session?.user?.avatarData} />
+      <div className="mx-auto w-full max-w-xl px-4 py-8 sm:py-12">
         <div className="mt-7 rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-6 shadow-2xl shadow-black/30 sm:p-8">
           <p className="text-sm font-semibold text-[#c6f65c]">NAIRA GIFT CARD PAYOUTS</p>
           <h1 className="mt-2 text-3xl font-semibold">Sell a gift card</h1>
           <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Choose a card, enter its USD value, and see your Naira payout update instantly.</p>
 
           <nav aria-label="Trade type" className="mt-6 grid grid-cols-2 rounded-xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-1">
-            <button type="button" onClick={() => setTradeType("giftcard")} aria-pressed={tradeType === "giftcard"} className={`rounded-lg px-3 py-2.5 text-center text-sm font-bold transition ${tradeType === "giftcard" ? "bg-[#c6f65c] text-[#161818]" : "text-[#d7dbd4] hover:bg-[#2a2e2d] hover:text-[#c6f65c]"}`}>Sell Giftcard</button>
-            <button type="button" onClick={() => setTradeType("crypto")} aria-pressed={tradeType === "crypto"} className={`rounded-lg px-3 py-2.5 text-center text-sm font-bold transition ${tradeType === "crypto" ? "bg-[#d6c7ff] text-[#161818]" : "text-[#d7dbd4] hover:bg-[#2a2e2d] hover:text-[#d6c7ff]"}`}>Sell Crypto</button>
+            <button type="button" onClick={() => router.replace("/trade")} aria-pressed={tradeType === "giftcard"} className={`rounded-lg px-3 py-2.5 text-center text-sm font-bold transition ${tradeType === "giftcard" ? "bg-[#c6f65c] text-[#161818]" : "text-[#d7dbd4] hover:bg-[#2a2e2d] hover:text-[#c6f65c]"}`}>Sell Giftcard</button>
+            <button type="button" onClick={() => router.replace("/trade?type=crypto")} aria-pressed={tradeType === "crypto"} className={`rounded-lg px-3 py-2.5 text-center text-sm font-bold transition ${tradeType === "crypto" ? "bg-[#d6c7ff] text-[#161818]" : "text-[#d7dbd4] hover:bg-[#2a2e2d] hover:text-[#d6c7ff]"}`}>Sell Crypto</button>
           </nav>
 
           {tradeType === "giftcard" ? <form onSubmit={handleSubmit} className="mt-7 space-y-5">

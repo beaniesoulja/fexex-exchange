@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
-import { formatNaira } from "@/lib/currency";
+import { formatNaira, formatUsd } from "@/lib/currency";
 import { NIGERIAN_BANKS } from "@/lib/nigerian-banks";
-import { ProfileMenu } from "@/components/profile-menu";
+import { AppHeader } from "@/components/app-header";
 
 interface Order {
   id: string;
@@ -79,6 +79,7 @@ function DashboardContent() {
   const [swapSaving, setSwapSaving] = useState(false);
   const [isNairaBalanceVisible, setIsNairaBalanceVisible] = useState(true);
   const [isCryptoBalanceVisible, setIsCryptoBalanceVisible] = useState(true);
+  const [preferredCurrency, setPreferredCurrency] = useState<"NGN" | "USD">("NGN");
 
   useEffect(() => {
     const promptTimer = window.setTimeout(() => {
@@ -105,6 +106,7 @@ function DashboardContent() {
             setUsername(profile.username ?? "");
             setLegalName(profile.legalName ?? "");
             setAvatarData(profile.avatarData ?? "");
+            setPreferredCurrency(profile.preferredCurrency === "USD" ? "USD" : "NGN");
             setBankName(profile.bankName ?? "");
             setBankAccountNumber(profile.bankAccountNumber ?? "");
             setSavedBankName(profile.bankName ?? "");
@@ -149,6 +151,7 @@ function DashboardContent() {
             setOrders(profile.orders);
             setSwaps(profile.swaps ?? []);
             setAvatarData(profile.avatarData ?? "");
+            setPreferredCurrency(profile.preferredCurrency === "USD" ? "USD" : "NGN");
           }
           if (quote) {
             setSwapRate(quote.rate ?? null);
@@ -168,6 +171,7 @@ function DashboardContent() {
 
   const displayUsername = username || session?.user?.username;
   const displayLegalName = legalName || session?.user?.legalName || "";
+  const walletFiatValue = wallet ? preferredCurrency === "USD" && swapRate ? wallet.fiatBalance / swapRate : wallet.fiatBalance : 0;
 
   const saveBankDetails = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -241,34 +245,26 @@ function DashboardContent() {
   };
 
   return (
-    <main className="fexex-surface min-h-screen bg-[#161818] p-4 text-[#f4f3ee] md:p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="fexex-surface min-h-screen bg-[#161818] text-[#f4f3ee]">
+      <AppHeader username={displayUsername} avatarData={avatarData || session?.user?.avatarData} />
+      <div className="mx-auto max-w-4xl p-4 md:p-8">
         {/* Header */}
         <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-3xl font-bold">{isWalletPage ? "My Wallet" : "My Dashboard"}</h1>
             <p className="text-[#a9afa9]">{isWalletPage ? "Your Naira and crypto holdings." : displayUsername ? `Your value is ready to move, @${displayUsername}` : "Your value is ready to move."}</p>
           </div>
-          <div className="flex w-full gap-3 sm:w-auto">
-            <button 
-              onClick={() => setShowTradePrompt(true)}
-              className="flex-1 rounded-lg bg-[#c6f65c] px-4 py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86] sm:flex-none"
-            >
-              Trade
-            </button>
-            <Link href="/wallet" className={`flex-1 rounded-lg px-4 py-2 text-center font-semibold transition sm:flex-none ${isWalletPage ? "bg-[#d6c7ff] text-[#161818]" : "bg-[#2a2e2d] text-[#f4f3ee] hover:bg-[#343a38]"}`}>Wallet</Link>
-            <ProfileMenu username={displayUsername} avatarData={avatarData || session?.user?.avatarData} />
-          </div>
+          <button onClick={() => setShowTradePrompt(true)} className="rounded-lg bg-[#c6f65c] px-4 py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86]">Start a trade</button>
         </div>
 
         {/* Wallet Balances */}
         {isWalletPage && <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div id="settings" className="rounded-2xl bg-[#c6f65c] p-6 text-[#161818] shadow-lg shadow-black/30">
             <div className="mb-1 flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-[#3c4c1c]">Naira balance</p>
+              <p className="text-sm font-medium text-[#3c4c1c]">{preferredCurrency === "USD" ? "Naira balance (USD view)" : "Naira balance"}</p>
               <button type="button" onClick={() => setIsNairaBalanceVisible((visible) => !visible)} aria-pressed={isNairaBalanceVisible} className="rounded-lg bg-[#161818]/10 px-2.5 py-1 text-xs font-bold text-[#3c4c1c] transition hover:bg-[#161818]/15">{isNairaBalanceVisible ? "Hide" : "Show"}</button>
             </div>
-            <h2 className="text-4xl font-bold">{wallet ? isNairaBalanceVisible ? formatNaira(wallet.fiatBalance) : "₦••••••" : "—"}</h2>
+            <h2 className="text-4xl font-bold">{wallet ? isNairaBalanceVisible ? (preferredCurrency === "USD" ? formatUsd(walletFiatValue) : formatNaira(wallet.fiatBalance)) : "••••••" : "—"}</h2>
             {!wallet && <p className="mt-1 text-xs font-medium text-[#3c4c1c]">Loading your balance...</p>}
             <div className="mt-4 space-y-2">
               {savedBankName && savedBankAccountNumber && !showBankAccountForm ? (
@@ -345,6 +341,7 @@ function DashboardContent() {
               <button type="button" onClick={() => setIsCryptoBalanceVisible((visible) => !visible)} aria-pressed={isCryptoBalanceVisible} className="rounded-lg bg-[#f4f3ee]/10 px-2.5 py-1 text-xs font-bold text-[#d7dbd4] transition hover:bg-[#f4f3ee]/15">{isCryptoBalanceVisible ? "Hide" : "Show"}</button>
             </div>
             <h2 className="text-4xl font-bold">{wallet ? isCryptoBalanceVisible ? wallet.cryptoBalance.toFixed(4) : "••••••" : "—"} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
+            {wallet && isCryptoBalanceVisible && swapRate !== null && <p className="mt-1 text-sm text-[#d6c7ff]">≈ {preferredCurrency === "USD" ? formatUsd(wallet.cryptoBalance) : formatNaira(wallet.cryptoBalance * swapRate)}</p>}
             <p className="mt-3 text-sm leading-6 text-[#c8ccc7]">Crypto is held separately. Swap USDT to Naira first, then request a Naira payout.</p>
             {!quoteLoaded ? (
               <p role="status" className="mt-4 rounded-lg border border-[#f4f3ee]/10 bg-[#f4f3ee]/5 p-3 text-sm text-[#a9afa9]">Loading today&apos;s swap rate...</p>
