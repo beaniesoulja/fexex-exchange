@@ -6,6 +6,7 @@ import { NIGERIAN_BANKS } from '@/lib/nigerian-banks';
 import { prisma } from '@/lib/prisma';
 
 const MINIMUM_AGE_YEARS = 18;
+const USERNAME_CHANGE_COOLDOWN_DAYS = 30;
 
 function isAtLeastMinimumAge(dateOfBirth: Date) {
   const cutoff = new Date();
@@ -13,7 +14,7 @@ function isAtLeastMinimumAge(dateOfBirth: Date) {
   return dateOfBirth <= cutoff;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // 1. Get the logged-in user's session
     const session = await getServerSession(authOptions);
@@ -21,7 +22,42 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Fetch the user, their wallet, and their orders from the database
+    const accountOnly = new URL(request.url).searchParams.get("scope") === "account";
+
+    // The profile screen only needs account data. Avoid holding its identity fields
+    // behind wallet, orders, and swaps queries that belong to the dashboard.
+    if (accountOnly) {
+      const userData = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          email: true,
+          username: true,
+          usernameChangedAt: true,
+          legalName: true,
+          dateOfBirth: true,
+          dateOfBirthChangedAt: true,
+          avatarData: true,
+          bio: true,
+          nameDisplay: true,
+          preferredCurrency: true,
+          timezone: true,
+          phoneCountryCode: true,
+          phoneNumber: true,
+          kycVerified: true,
+          cryptoWalletAddress: true,
+          bankName: true,
+          bankAccountNumber: true,
+        },
+      });
+
+      if (!userData) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      return NextResponse.json(userData, { status: 200 });
+    }
+
+    // Dashboard consumers need the wallet, orders, and swaps in addition to the account.
     const userData = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
@@ -44,6 +80,7 @@ export async function GET() {
     return NextResponse.json({
       email: userData.email,
       username: userData.username,
+      usernameChangedAt: userData.usernameChangedAt,
       legalName: userData.legalName,
       dateOfBirth: userData.dateOfBirth,
       dateOfBirthChangedAt: userData.dateOfBirthChangedAt,
@@ -118,6 +155,15 @@ export async function POST(req: Request) {
         }
       }
 
+      const usernameChanged = username !== current.username;
+      if (usernameChanged && current.username && current.usernameChangedAt) {
+        const nextChangeAt = new Date(current.usernameChangedAt.getTime() + USERNAME_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
+        if (nextChangeAt > new Date()) {
+          const daysLeft = Math.max(1, Math.ceil((nextChangeAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+          return NextResponse.json({ error: `You can change your username again in ${daysLeft} day${daysLeft === 1 ? "" : "s"}.`, field: "username" }, { status: 400 });
+        }
+      }
+
       const dateOfBirthChanged = Boolean(
         dateOfBirth && (!current.dateOfBirth || current.dateOfBirth.toISOString().slice(0, 10) !== dateOfBirth.toISOString().slice(0, 10)),
       );
@@ -141,6 +187,7 @@ export async function POST(req: Request) {
             username, email, phoneCountryCode, phoneNumber, bio, nameDisplay, preferredCurrency, timezone,
             ...(dateOfBirth ? { dateOfBirth } : {}),
             ...(dateOfBirthChanged && current.dateOfBirth ? { dateOfBirthChangedAt: new Date() } : {}),
+            ...(usernameChanged && current.username ? { usernameChangedAt: new Date() } : {}),
           },
         }),
         ...(emailChanged ? [prisma.profileAudit.create({
@@ -151,7 +198,7 @@ export async function POST(req: Request) {
           },
         })] : []),
       ]);
-      return NextResponse.json({ message: "Profile saved.", username, email, phoneCountryCode, phoneNumber, bio, nameDisplay, preferredCurrency, timezone, dateOfBirth: dateOfBirth ?? current.dateOfBirth, dateOfBirthChangedAt: dateOfBirthChanged && current.dateOfBirth ? new Date() : current.dateOfBirthChangedAt });
+      return NextResponse.json({ message: "Profile saved.", username, usernameChangedAt: usernameChanged && current.username ? new Date() : current.usernameChangedAt, email, phoneCountryCode, phoneNumber, bio, nameDisplay, preferredCurrency, timezone, dateOfBirth: dateOfBirth ?? current.dateOfBirth, dateOfBirthChangedAt: dateOfBirthChanged && current.dateOfBirth ? new Date() : current.dateOfBirthChangedAt });
     }
 
     if (avatarData) {

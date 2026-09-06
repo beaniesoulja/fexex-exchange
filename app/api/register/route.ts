@@ -49,6 +49,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Enter your first and last legal names as they appear on your government ID." }, { status: 400 });
   }
 
+  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(legalName)) {
+    return NextResponse.json({ error: "Your legal name can only contain letters." }, { status: 400 });
+  }
+
   if (!dateOfBirth || Number.isNaN(dateOfBirth.getTime()) || dateOfBirth.toISOString().slice(0, 10) !== dateOfBirthValue || dateOfBirth > new Date()) {
     return NextResponse.json({ error: "Enter a valid date of birth." }, { status: 400 });
   }

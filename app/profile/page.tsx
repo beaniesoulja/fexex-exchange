@@ -11,6 +11,7 @@ import { ProfileMenu } from "@/components/profile-menu";
 interface ProfileData {
   email: string | null;
   username: string | null;
+  usernameChangedAt: string | null;
   legalName: string | null;
   dateOfBirth: string | null;
   dateOfBirthChangedAt: string | null;
@@ -53,6 +54,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [profileLoadError, setProfileLoadError] = useState("");
+  const [profileLoadAttempt, setProfileLoadAttempt] = useState(0);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phoneCountryCode, setPhoneCountryCode] = useState("+234");
@@ -89,11 +92,34 @@ export default function ProfilePage() {
     }
     if (status !== "authenticated") return;
 
-    void fetch("/api/user/profile")
-      .then(async (response) => response.ok ? response.json() : null)
-      .then((data) => { if (data) applyProfile(data); })
-      .catch(() => setMessage("We could not load your profile."));
-  }, [status, router]);
+    let active = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8_000);
+
+    void fetch("/api/user/profile?scope=account", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Profile request failed");
+        return response.json() as Promise<ProfileData>;
+      })
+      .then((data) => {
+        if (active) applyProfile(data);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setProfileLoadError(error instanceof DOMException && error.name === "AbortError"
+          ? "Your profile is taking too long to load. Try again."
+          : "We could not load your profile. Try again.");
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
+      });
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [status, router, profileLoadAttempt]);
 
   useEffect(() => {
     const candidate = username.trim().toLowerCase();
@@ -197,9 +223,13 @@ export default function ProfilePage() {
 
   const avatarData = profile?.avatarData ?? session?.user?.avatarData;
   const dateOfBirthLocked = Boolean(profile?.dateOfBirth && profile?.dateOfBirthChangedAt);
-  const legalNameParts = (profile?.legalName ?? "Your name").trim().split(/\s+/);
+  const nextUsernameChangeAt = profile?.usernameChangedAt ? new Date(new Date(profile.usernameChangedAt).getTime() + 30 * 24 * 60 * 60 * 1000) : null;
+  const nextUsernameChangeDate = nextUsernameChangeAt ? toDateDisplayValue(nextUsernameChangeAt.toISOString()) : null;
+  const legalName = profile?.legalName ?? session?.user?.legalName ?? "";
+  const accountDetailsLoading = status === "authenticated" && !profile && !profileLoadError;
+  const legalNameParts = (legalName || "Your name").trim().split(/\s+/);
   const initialsExample = `${legalNameParts[0]}${legalNameParts.length > 1 ? ` ${legalNameParts.at(-1)?.[0]}.` : ""}`;
-  const fullNameExample = profile?.legalName ?? "Your full name";
+  const fullNameExample = legalName || "Your full name";
 
   return (
     <main className="min-h-screen bg-[#f2f3ef] p-4 text-[#1d2220] sm:p-8">
@@ -244,13 +274,15 @@ export default function ProfilePage() {
               <div className="mt-4 space-y-4">
                 <div>
                   <FieldLabel>Name</FieldLabel>
-                  <div className="rounded-lg bg-[#e0e0e0] px-3 py-2.5 font-semibold">{profile?.legalName ?? "Loading..."}</div>
+                  <div className="rounded-lg bg-[#e0e0e0] px-3 py-2.5 font-semibold">{legalName || (accountDetailsLoading ? "Loading account details…" : "Name unavailable")}</div>
                   <p className="mt-1 text-xs text-[#5e6863]">Your legal name cannot be edited here.</p>
+                  {profileLoadError && <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 text-xs text-rose-700"><span>{profileLoadError}</span><button type="button" onClick={() => { setProfileLoadError(""); setProfileLoadAttempt((attempt) => attempt + 1); }} className="font-bold underline underline-offset-2">Try again</button></div>}
                 </div>
                 <div>
                   <FieldLabel>Username</FieldLabel>
                   <input value={username} readOnly={!accountEditing} onChange={(event) => { setUsername(event.target.value.replace(/\s/g, "").toLowerCase()); setUsernameMessage(""); }} maxLength={24} className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none read-only:text-[#1d2220] focus:ring-2 focus:ring-[#c6f65c]" />
                   {usernameMessage && <p className={`mt-1 text-xs ${usernameMessage.includes("available") ? "text-emerald-700" : "text-rose-700"}`}>{usernameMessage}</p>}
+                  <p className="mt-1 text-xs text-[#5e6863]">{nextUsernameChangeDate ? `You can change your username again after ${nextUsernameChangeDate}.` : "You can change your username once every 30 days."}</p>
                 </div>
                 <div>
                   <FieldLabel>Email</FieldLabel>

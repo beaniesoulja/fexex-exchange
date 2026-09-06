@@ -17,6 +17,7 @@ export default function SignupPage() {
   const [phoneCountryCode, setPhoneCountryCode] = useState("+234");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -102,6 +103,12 @@ export default function SignupPage() {
       return;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailTouched(true);
+      setError("Enter a valid email address.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -167,7 +174,7 @@ export default function SignupPage() {
           </div>
           <div>
             <label htmlFor="legal-name" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Full legal name</label>
-            <input id="legal-name" type="text" value={legalName} onChange={(event) => setLegalName(event.target.value)} autoComplete="name" required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="As shown on your government ID" />
+            <input id="legal-name" type="text" value={legalName} onChange={(event) => setLegalName(event.target.value.replace(/[^A-Za-z ]/g, ""))} autoComplete="name" required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="As shown on your government ID" />
             <p className="mt-2 text-xs leading-5 text-[#777a75]">Use the name on your government ID. This helps with future KYC and Naira payouts.</p>
           </div>
           <div>
@@ -176,7 +183,8 @@ export default function SignupPage() {
           </div>
           <div>
             <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Email address</label>
-            <input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="you@example.com" />
+            <input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} onBlur={() => setEmailTouched(true)} autoComplete="email" required aria-describedby="email-help" className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" placeholder="you@example.com" />
+            {emailTouched && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && <p id="email-help" role="alert" className="mt-2 text-xs leading-5 text-red-200">Enter a valid email address.</p>}
           </div>
           <div>
             <label htmlFor="phone-number" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Phone number</label>

@@ -47,10 +47,16 @@ enum MailingListStatus {
   UNSUBSCRIBED
 }
 
+enum SupportTicketStatus {
+  OPEN
+  CLOSED
+}
+
 model User {
   id                  String   @id @default(cuid())
   email               String   @unique
   username            String?  @unique
+  usernameChangedAt   DateTime?
   legalName           String?
   dateOfBirth         DateTime?
   dateOfBirthChangedAt DateTime?
@@ -77,6 +83,8 @@ model User {
   swaps      Swap[]
   payouts    Payout[]
   activities UserActivity[]
+  supportTickets  SupportTicket[]
+  supportMessages SupportMessage[]
   tradeMessages TradeMessage[]
   loginSessions LoginSession[]
   profileAudits ProfileAudit[]
@@ -176,6 +184,35 @@ model Order {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model SupportTicket {
+  id        String              @id @default(cuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id])
+  subject   String
+  status    SupportTicketStatus @default(OPEN)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([status, updatedAt])
+}
+
+model SupportMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  senderId  String
+  body      String
+  imageData String?
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
 }
 
 model TradeMessage {
