@@ -133,15 +133,22 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="fexex-surface min-h-screen bg-[#161818] px-4 py-10 text-[#f4f3ee] sm:py-16">
-      <div className="mx-auto w-full max-w-md rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-7 shadow-2xl shadow-black/40 sm:p-9">
+    <main className="fexex-surface relative min-h-screen overflow-hidden bg-[#161818] px-4 py-10 text-[#f4f3ee] sm:py-16">
+      <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-one" />
+      <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-two" />
+      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute left-[6%] top-[12%] hidden text-4xl opacity-20 lg:block">🎁</span>
+      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute right-[8%] top-[16%] hidden text-4xl opacity-20 lg:block" style={{ animationDelay: "1.2s" }}>✦</span>
+      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute bottom-[10%] left-[10%] hidden text-4xl opacity-20 lg:block" style={{ animationDelay: "2s" }}>💎</span>
+
+      <div className="fexex-pop-in relative mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-7 shadow-2xl shadow-black/40 sm:p-9">
+        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#c6f65c]" />
         <Link href="/" aria-label="Fexex home">
           <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" style={{ width: "auto" }} />
         </Link>
         {createdAccount ? (
-          <section className="mt-8" aria-labelledby="account-created-heading">
-            <p className="inline-flex rounded-full bg-[#c6f65c]/10 px-3 py-1 text-xs font-bold tracking-wide text-[#d8ff96]">ACCOUNT CREATED</p>
-            <h1 id="account-created-heading" className="mt-4 text-3xl font-semibold">You&apos;re all set.</h1>
+          <section className="fexex-bounce-in mt-8" aria-labelledby="account-created-heading">
+            <p className="inline-flex rounded-full bg-[#c6f65c]/10 px-3 py-1 text-xs font-bold tracking-wide text-[#d8ff96]">🎉 ACCOUNT CREATED</p>
+            <h1 id="account-created-heading" className="mt-4 text-3xl font-semibold">You&apos;re all set!</h1>
             <p className="mt-2 text-sm leading-6 text-[#a9afa9]">Your FEXEX account has been created. Keep these login details private.</p>
             <div className="mt-7 space-y-4 rounded-2xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-5">
               <div>
@@ -156,7 +163,7 @@ export default function SignupPage() {
             <button type="button" onClick={() => router.push("/login")} className="mt-6 w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:bg-[#d9ff86]">Go to login</button>
           </section>
         ) : <>
-          <h1 className="mt-8 text-3xl font-semibold">Create your account</h1>
+          <h1 className="mt-8 text-3xl font-semibold">Create your account <span aria-hidden="true">✦</span></h1>
           <p className="mt-2 text-sm leading-6 text-[#a9afa9]">Value in motion starts with one account.</p>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-5">
@@ -211,8 +218,8 @@ export default function SignupPage() {
 
           {error && <p role="alert" className="rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
 
-          <button type="submit" disabled={loading} className="w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:opacity-60">
-            {loading ? "Creating account..." : "Create account"}
+          <button type="submit" disabled={loading} className="w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100 disabled:opacity-60">
+            {loading ? "Creating account..." : "Create account →"}
           </button>
           </form>
 

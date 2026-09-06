@@ -56,11 +56,18 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="fexex-surface flex min-h-screen items-center justify-center bg-[#161818] p-4 text-[#f4f3ee]">
-      <div className="w-full max-w-md rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-8 shadow-2xl shadow-black/40">
-        {/* FIXED: Changed from "Admin Login" to a general welcome message */}
+    <main className="fexex-surface relative flex min-h-screen items-center justify-center overflow-hidden bg-[#161818] p-4 text-[#f4f3ee]">
+      <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-one" />
+      <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-two" />
+      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute left-[8%] top-[18%] hidden text-4xl opacity-20 sm:block">🎮</span>
+      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute right-[10%] top-[24%] hidden text-4xl opacity-20 sm:block" style={{ animationDelay: "1.5s" }}>💳</span>
+      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute bottom-[16%] left-[12%] hidden text-4xl opacity-20 sm:block" style={{ animationDelay: "0.8s" }}>✦</span>
+      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute bottom-[20%] right-[8%] hidden text-4xl opacity-20 sm:block" style={{ animationDelay: "2.2s" }}>🔐</span>
+
+      <div className="fexex-pop-in relative w-full max-w-md overflow-hidden rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-8 shadow-2xl shadow-black/40">
+        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#c6f65c]" />
         <div className="mb-6 flex justify-center"><Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-9 w-auto" style={{ width: "auto" }} /></div>
-        <h1 className="mb-2 text-center text-2xl font-bold">Welcome back</h1>
+        <h1 className="mb-2 text-center text-2xl font-bold">Welcome back <span aria-hidden="true">👋</span></h1>
         <p className="mb-6 text-center text-sm text-[#a9afa9]">Your next move, simplified.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -96,12 +103,12 @@ export default function LoginPage() {
 
           {failedPasswordAttempts >= 2 && <p className="text-center text-sm text-[#a9afa9]">Forgot your password? <Link href="/forgot-password" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Reset it by email</Link></p>}
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading || (turnstileEnabled && !turnstileToken)}
-            className="w-full rounded-xl bg-[#c6f65c] py-3 font-bold text-[#161818] transition hover:bg-[#d9ff86] disabled:opacity-50"
+            className="w-full rounded-xl bg-[#c6f65c] py-3 font-bold text-[#161818] transition hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100 disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Signing in..." : "Sign in →"}
           </button>
         </form>
 

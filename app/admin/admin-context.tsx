@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { canEnterAdminArea, canManageRates, canVerifyTrades, isFullAdmin } from "@/lib/admin-access";
 import type { Analytics, Order, Pricing, SupportTicketSummary } from "./admin-types";
 
 interface AdminContextValue {
@@ -29,7 +29,6 @@ export function useAdmin() {
 
 export function AdminProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -64,53 +63,63 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status === "loading") return;
 
-    if (status === "unauthenticated" || session?.user?.role !== "ADMIN") {
-      router.push("/login");
+    if (status === "unauthenticated" || !canEnterAdminArea(session?.user)) {
+      void Promise.resolve().then(() => setOrdersLoading(false));
       return;
     }
 
-    void fetch("/api/admin/orders")
-      .then((res) => res.json())
-      .then(setOrders)
-      .catch((error) => console.error("Failed to fetch orders", error))
-      .finally(() => setOrdersLoading(false));
-    void fetch("/api/admin/pricing")
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to load pricing");
-        return res.json();
-      })
-      .then(setPricing)
-      .catch((error) => {
-        console.error("Failed to fetch pricing", error);
-        setPricingLoadError("We could not load the current pricing.");
-      });
-    void fetch("/api/admin/analytics")
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to load analytics");
-        return res.json();
-      })
-      .then(setAnalytics)
-      .catch((error) => {
-        console.error("Failed to fetch analytics", error);
-        setAnalyticsError("We could not load user activity right now.");
-      });
-    void fetch("/api/admin/support")
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to load support tickets");
-        return res.json();
-      })
-      .then(setSupportTickets)
-      .catch((error) => console.error("Failed to fetch support tickets", error));
-  }, [status, session, router]);
+    if (canVerifyTrades(session?.user)) {
+      void fetch("/api/admin/orders")
+        .then((res) => res.json())
+        .then(setOrders)
+        .catch((error) => console.error("Failed to fetch orders", error))
+        .finally(() => setOrdersLoading(false));
+    } else {
+      void Promise.resolve().then(() => setOrdersLoading(false));
+    }
+
+    if (canManageRates(session?.user)) {
+      void fetch("/api/admin/pricing")
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to load pricing");
+          return res.json();
+        })
+        .then(setPricing)
+        .catch((error) => {
+          console.error("Failed to fetch pricing", error);
+          setPricingLoadError("We could not load the current pricing.");
+        });
+    }
+
+    if (isFullAdmin(session?.user)) {
+      void fetch("/api/admin/analytics")
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to load analytics");
+          return res.json();
+        })
+        .then(setAnalytics)
+        .catch((error) => {
+          console.error("Failed to fetch analytics", error);
+          setAnalyticsError("We could not load user activity right now.");
+        });
+      void fetch("/api/admin/support")
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to load support tickets");
+          return res.json();
+        })
+        .then(setSupportTickets)
+        .catch((error) => console.error("Failed to fetch support tickets", error));
+    }
+  }, [status, session]);
 
   useEffect(() => {
-    if (status !== "authenticated" || session?.user?.role !== "ADMIN") return;
+    if (status !== "authenticated" || !canEnterAdminArea(session?.user)) return;
 
     let ordersInFlight = false;
     let analyticsInFlight = false;
     let supportInFlight = false;
     const refreshSupportTickets = () => {
-      if (document.visibilityState !== "visible" || supportInFlight) return;
+      if (!isFullAdmin(session?.user) || document.visibilityState !== "visible" || supportInFlight) return;
       supportInFlight = true;
       void fetch("/api/admin/support")
         .then(async (res) => {
@@ -122,7 +131,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         .finally(() => { supportInFlight = false; });
     };
     const refreshOrders = () => {
-      if (document.visibilityState !== "visible" || ordersInFlight) return;
+      if (!canVerifyTrades(session?.user) || document.visibilityState !== "visible" || ordersInFlight) return;
       ordersInFlight = true;
       void fetch("/api/admin/orders")
         .then(async (res) => {
@@ -135,7 +144,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     };
 
     const refreshAnalytics = () => {
-      if (document.visibilityState !== "visible" || analyticsInFlight) return;
+      if (!isFullAdmin(session?.user) || document.visibilityState !== "visible" || analyticsInFlight) return;
       analyticsInFlight = true;
       void fetch("/api/admin/analytics")
         .then(async (res) => {

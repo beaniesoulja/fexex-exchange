@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   USER
   ADMIN
+  SUB_ADMIN
 }
 
 enum OrderType {
@@ -68,6 +69,8 @@ model User {
   bankName            String?
   bankAccountNumber   String?
   role                Role     @default(USER)
+  canVerifyTrades     Boolean  @default(false)
+  canManageRates      Boolean  @default(false)
   kycVerified         Boolean  @default(false)
   marketplaceBuyerApproved Boolean @default(false)
   bio                 String?  @db.VarChar(180)

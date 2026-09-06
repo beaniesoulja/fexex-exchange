@@ -186,7 +186,7 @@ export default function TradeRoomPage() {
     <main className="fexex-surface min-h-screen bg-[#161818] p-4 text-[#f4f3ee] sm:p-8">
       <div className="mx-auto max-w-2xl">
         <Link href="/trade" className="text-sm font-semibold text-[#c6f65c] transition hover:text-[#d8ff96]">← Back to Trade</Link>
-        <section className="mt-5 overflow-hidden rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] shadow-2xl shadow-black/20">
+        <section className="fexex-pop-in mt-5 overflow-hidden rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] shadow-2xl shadow-black/20">
           <div className="border-b border-[#f4f3ee]/10 bg-gradient-to-r from-[#202b20] via-[#202323] to-[#26222e] p-5 sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -216,7 +216,7 @@ export default function TradeRoomPage() {
                     </div>
                   </div>
                 );
-              }) : <div className="flex min-h-56 flex-col items-center justify-center px-5 text-center"><span className="mb-3 rounded-full bg-[#c6f65c]/10 px-3 py-1 text-xs font-bold text-[#d8ff96]">SECURE TRADE CHAT</span><p className="text-sm font-semibold text-[#f4f3ee]">This trade room is ready.</p><p className="mt-1 max-w-sm text-sm leading-6 text-[#a9afa9]">Ask a question or share any detail the reviewer needs. Never post your password, bank PIN, or recovery phrase here.</p></div>}
+              }) : <div className="flex min-h-56 flex-col items-center justify-center px-5 text-center"><span aria-hidden="true" className="fexex-float-icon mb-2 text-3xl">💬</span><span className="mb-3 rounded-full bg-[#c6f65c]/10 px-3 py-1 text-xs font-bold text-[#d8ff96]">SECURE TRADE CHAT</span><p className="text-sm font-semibold text-[#f4f3ee]">This trade room is ready.</p><p className="mt-1 max-w-sm text-sm leading-6 text-[#a9afa9]">Ask a question or share any detail the reviewer needs. Never post your password, bank PIN, or recovery phrase here.</p></div>}
             </div>
 
             {loadError && <p role="alert" className="mt-3 rounded-xl border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-100">{loadError}</p>}
@@ -227,7 +227,7 @@ export default function TradeRoomPage() {
               <div className="flex gap-2">
                 <label className={`flex shrink-0 cursor-pointer items-center justify-center self-end rounded-2xl border border-[#f4f3ee]/20 px-4 py-3 text-sm font-bold text-[#d7dbd4] transition hover:border-[#c6f65c] hover:text-[#d8ff96] ${isClosed || sending ? "pointer-events-none opacity-50" : ""}`} title="Attach an image"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} disabled={isClosed || sending} className="sr-only" />Image</label>
                 <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={1000} rows={2} disabled={isClosed || sending} placeholder={isClosed ? "This trade room is closed" : "Write a message about this trade"} className="min-w-0 flex-1 resize-none rounded-2xl border border-[#f4f3ee]/15 bg-[#f4f3ee] px-4 py-3 text-sm text-[#161818] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/30 disabled:cursor-not-allowed disabled:opacity-60" />
-                <button type="submit" disabled={(!body.trim() && !image) || isClosed || sending} className="self-end rounded-2xl bg-[#c6f65c] px-5 py-3 font-bold text-[#161818] transition hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:opacity-50">{sending ? "Sending…" : "Send"}</button>
+                <button type="submit" disabled={(!body.trim() && !image) || isClosed || sending} className="self-end rounded-2xl bg-[#c6f65c] px-5 py-3 font-bold text-[#161818] transition hover:-translate-y-0.5 hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-50">{sending ? "Sending…" : "Send ✦"}</button>
               </div>
               <div className="mt-2 flex items-center justify-between gap-3 text-xs text-[#777a75]"><span>{isClosed ? "Conversation closed after successful trade" : "Images: JPG, PNG, or WebP up to 2 MB."}</span><span>{body.length}/1000</span></div>
             </form>

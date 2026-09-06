@@ -100,7 +100,7 @@ export default function AdminSupportPage() {
   const openCount = supportTickets.filter((ticket) => ticket.status === "OPEN").length;
 
   return (
-    <section aria-labelledby="support-heading">
+    <section className="fexex-pop-in" aria-labelledby="support-heading">
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold tracking-wide text-[#c6f65c]">CUSTOMER SUPPORT</p>

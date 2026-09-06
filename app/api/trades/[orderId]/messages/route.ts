@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyAdminOfTradeMessage } from "@/lib/notify";
 
 function tradeDisplayName(user: { username: string | null }) {
   return user.username ? `@${user.username}` : "FEXEX user";
@@ -60,5 +61,15 @@ export async function POST(request: Request, context: RouteContext<"/api/trades/
     },
     include: { sender: { select: { username: true, legalName: true, nameDisplay: true, role: true } } },
   });
+
+  if (permitted.session!.user.role !== "ADMIN") {
+    void notifyAdminOfTradeMessage({
+      userEmail: permitted.session!.user.email ?? "Unknown customer",
+      referenceId: permitted.order!.referenceId,
+      orderId,
+      message,
+    }).catch((error) => console.error("Trade chat notification error:", error));
+  }
+
   return NextResponse.json({ ...saved, isOwn: true, sender: { ...saved.sender, displayName: saved.sender.role === "ADMIN" ? "Admin" : tradeDisplayName(saved.sender) } }, { status: 201 });
 }

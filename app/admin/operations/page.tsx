@@ -5,7 +5,7 @@ export default function AdminOperationsPage() {
   const { analytics } = useAdmin();
 
   return (
-    <section className="mb-8 space-y-5" aria-labelledby="operations-heading">
+    <section className="fexex-pop-in mb-8 space-y-5" aria-labelledby="operations-heading">
       <div className="rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-5 sm:p-6">
         <p className="text-xs font-semibold tracking-wide text-[#d6c7ff]">USERS & SAFEGUARDS</p>
         <h2 id="operations-heading" className="mt-1 text-2xl font-bold">Operational access, activity, and the next safety controls.</h2>

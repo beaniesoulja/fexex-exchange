@@ -186,7 +186,7 @@ export default function AdminRatesPage() {
   const selectedGiftCard = pricing?.giftCardRates.find((rate) => rate.brand === selectedGiftCardBrand) ?? null;
 
   return (
-    <section className="mb-8 rounded-2xl border border-[#d6c7ff]/25 bg-[#202323] p-5 shadow-lg shadow-black/20 sm:p-6" aria-labelledby="pricing-heading">
+    <section className="fexex-pop-in mb-8 rounded-2xl border border-[#d6c7ff]/25 bg-[#202323] p-5 shadow-lg shadow-black/20 sm:p-6" aria-labelledby="pricing-heading">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold tracking-wide text-[#d6c7ff]">DAILY PRICING</p>

@@ -154,17 +154,21 @@ export const authOptions: NextAuthOptions = {
       const currentUser = typeof token.id === "string"
         ? await prisma.user.findUnique({
           where: { id: token.id },
-          select: { username: true, legalName: true, avatarData: true },
+          select: { username: true, legalName: true, avatarData: true, role: true, canVerifyTrades: true, canManageRates: true },
         })
         : null;
 
       // Add current account identity to the session so the dashboard does not wait for a second profile request.
+      // Role and admin permissions are re-read from the database (not the JWT) so a
+      // permission change by another admin takes effect on this user's next request.
       if (session.user) {
-        session.user.role = token.role as Role;
+        session.user.role = currentUser?.role ?? (token.role as Role);
         session.user.id = token.id as string;
         session.user.username = currentUser?.username ?? token.username;
         session.user.legalName = currentUser?.legalName ?? token.legalName;
         session.user.avatarData = currentUser?.avatarData ?? undefined;
+        session.user.canVerifyTrades = currentUser?.canVerifyTrades ?? false;
+        session.user.canManageRates = currentUser?.canManageRates ?? false;
       }
       return session;
     }

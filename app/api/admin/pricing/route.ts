@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { giftCards } from "@/lib/gift-cards";
 import { ensurePricingDefaults } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { canManageRates } from "@/lib/admin-access";
 
 const MAX_USD_TO_NAIRA_RATE = 10_000_000;
 const MAX_NAIRA_PAYOUT_RATE = 1_000_000;
@@ -17,7 +18,7 @@ class PricingValidationError extends Error {}
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  return session?.user?.role === "ADMIN";
+  return canManageRates(session?.user);
 }
 
 function cleanText(value: unknown, field: string, required = true, maxLength = MAX_LABEL_LENGTH) {

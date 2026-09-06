@@ -9,6 +9,8 @@ declare module "next-auth" {
       username?: string;
       legalName?: string;
       avatarData?: string;
+      canVerifyTrades?: boolean;
+      canManageRates?: boolean;
     } & DefaultSession["user"];
   }
 
