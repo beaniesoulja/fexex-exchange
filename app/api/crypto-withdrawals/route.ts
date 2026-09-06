@@ -52,19 +52,32 @@ export async function POST(request: Request) {
         },
       });
 
+      const orderWithReference = await tx.order.update({
+        where: { id: savedOrder.id },
+        data: { referenceId: `FEX-${savedOrder.id.toUpperCase()}` },
+      });
+
       await tx.userActivity.create({
         data: {
           userId: user.id,
-          orderId: savedOrder.id,
+          orderId: orderWithReference.id,
           type: "TRADE_SUBMITTED",
-          details: `Submitted ${asset} withdrawal request worth ${usdValue} USD.`,
+          details: `Submitted ${asset} withdrawal request worth ${usdValue} USD. Trade session: ${orderWithReference.referenceId}.`,
         },
       });
 
-      return savedOrder;
+      await tx.tradeMessage.create({
+        data: {
+          orderId: orderWithReference.id,
+          senderId: user.id,
+          body: `Crypto withdrawal submitted. Trade session ID: ${orderWithReference.referenceId}. I am ready for Admin review.`,
+        },
+      });
+
+      return orderWithReference;
     });
 
-    return NextResponse.json({ orderId: order.id, expectedPayout: totalValue, currency: "NGN" }, { status: 201 });
+    return NextResponse.json({ orderId: order.id, referenceId: order.referenceId, expectedPayout: totalValue, currency: "NGN" }, { status: 201 });
   } catch (error) {
     console.error("Crypto withdrawal request failed:", error);
     return NextResponse.json({ error: "We could not submit your crypto withdrawal request." }, { status: 500 });

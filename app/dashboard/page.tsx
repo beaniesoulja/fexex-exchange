@@ -10,6 +10,7 @@ import { AppHeader } from "@/components/app-header";
 
 interface Order {
   id: string;
+  referenceId: string | null;
   type: string;
   amount: number;
   totalValue: number;
@@ -94,11 +95,9 @@ function DashboardContent() {
     if (status === "unauthenticated") {
       router.push("/login");
     } else {
-      void Promise.all([
-        fetch("/api/user/profile").then(async (res) => (res.ok ? res.json() : null)),
-        fetch("/api/swaps").then(async (res) => (res.ok ? res.json() : null)),
-      ])
-        .then(([profile, quote]) => {
+      void fetch("/api/user/profile")
+        .then(async (res) => (res.ok ? res.json() : null))
+        .then((profile) => {
           if (profile) {
             setWallet(profile.wallet);
             setOrders(profile.orders);
@@ -112,10 +111,6 @@ function DashboardContent() {
             setSavedBankName(profile.bankName ?? "");
             setSavedBankAccountNumber(profile.bankAccountNumber ?? "");
             setShowBankAccountForm(!(profile.bankName && profile.bankAccountNumber));
-          }
-          if (quote) {
-            setSwapRate(quote.rate ?? null);
-            setSwapMinimum(quote.minimumAmount ?? 0.01);
           }
         })
         .catch((error) => console.error("Failed to fetch profile", error))
@@ -140,12 +135,13 @@ function DashboardContent() {
   useEffect(() => {
     if (status !== "authenticated") return;
 
+    let refreshInFlight = false;
     const refreshLiveData = () => {
-      void Promise.all([
-        fetch("/api/user/profile").then(async (res) => (res.ok ? res.json() : null)),
-        fetch("/api/swaps").then(async (res) => (res.ok ? res.json() : null)),
-      ])
-        .then(([profile, quote]) => {
+      if (document.visibilityState !== "visible" || refreshInFlight) return;
+      refreshInFlight = true;
+      void fetch("/api/user/profile")
+        .then(async (res) => (res.ok ? res.json() : null))
+        .then((profile) => {
           if (profile) {
             setWallet(profile.wallet);
             setOrders(profile.orders);
@@ -153,16 +149,46 @@ function DashboardContent() {
             setAvatarData(profile.avatarData ?? "");
             setPreferredCurrency(profile.preferredCurrency === "USD" ? "USD" : "NGN");
           }
-          if (quote) {
-            setSwapRate(quote.rate ?? null);
-            setSwapMinimum(quote.minimumAmount ?? 0.01);
-          }
         })
-        .catch((error) => console.error("Failed to refresh dashboard data", error));
+        .catch((error) => console.error("Failed to refresh dashboard data", error))
+        .finally(() => { refreshInFlight = false; });
     };
 
-    const interval = window.setInterval(refreshLiveData, 3_000);
-    return () => window.clearInterval(interval);
+    // The initial load above already fetched the dashboard. Refreshing less often
+    // avoids repeatedly downloading the same orders and wallet data.
+    const interval = window.setInterval(refreshLiveData, 30_000);
+    document.addEventListener("visibilitychange", refreshLiveData);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshLiveData);
+    };
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    let refreshInFlight = false;
+    const refreshCryptoRate = () => {
+      if (document.visibilityState !== "visible" || refreshInFlight) return;
+      refreshInFlight = true;
+      void fetch("/api/swaps")
+        .then(async (res) => (res.ok ? res.json() : null))
+        .then((quote) => {
+          if (!quote) return;
+          setSwapRate(quote.rate ?? null);
+          setSwapMinimum(quote.minimumAmount ?? 0.01);
+        })
+        .catch((error) => console.error("Failed to refresh crypto rate", error))
+        .finally(() => { refreshInFlight = false; });
+    };
+
+    refreshCryptoRate();
+    const interval = window.setInterval(refreshCryptoRate, 24 * 60 * 60 * 1_000);
+    document.addEventListener("visibilitychange", refreshCryptoRate);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshCryptoRate);
+    };
   }, [status]);
 
   if (status !== "authenticated") {
@@ -254,7 +280,10 @@ function DashboardContent() {
             <h1 className="text-3xl font-bold">{isWalletPage ? "My Wallet" : "My Dashboard"}</h1>
             <p className="text-[#a9afa9]">{isWalletPage ? "Your Naira and crypto holdings." : displayUsername ? `Your value is ready to move, @${displayUsername}` : "Your value is ready to move."}</p>
           </div>
-          <button onClick={() => setShowTradePrompt(true)} className="rounded-lg bg-[#c6f65c] px-4 py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86]">Start a trade</button>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/trades" className="rounded-lg border border-[#c6f65c]/45 bg-[#c6f65c]/10 px-4 py-2 font-semibold text-[#d8ff96] transition hover:bg-[#c6f65c]/20">Pending trades</Link>
+            <button onClick={() => setShowTradePrompt(true)} className="rounded-lg bg-[#c6f65c] px-4 py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86]">Start a trade</button>
+          </div>
         </div>
 
         {/* Wallet Balances */}
@@ -330,9 +359,9 @@ function DashboardContent() {
               )}
               {bankDetailsMessage && <p role="status" className={`text-xs font-medium ${bankDetailsMessage === "Bank details saved." ? "text-[#3c4c1c]" : "text-red-700"}`}>{bankDetailsMessage}</p>}
             </div>
-            <button className="mt-4 rounded-lg bg-[#161818] px-4 py-2 text-sm font-semibold text-[#f4f3ee] transition hover:bg-[#2a2e2d]">
+            <Link href="/help-center" className="mt-4 flex items-center justify-center rounded-lg bg-[#161818] px-4 py-2 text-sm font-semibold text-[#f4f3ee] transition hover:bg-[#2a2e2d]">
               Request Withdrawal
-            </button>
+            </Link>
           </div>
           
           <div id="crypto-balance" className="scroll-mt-4 rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30">
@@ -397,6 +426,7 @@ function DashboardContent() {
                     <th className="pb-3 font-medium">Amount</th>
                     <th className="pb-3 font-medium">Payout</th>
                     <th className="pb-3 font-medium">Status</th>
+                    <th className="pb-3 font-medium"><span className="sr-only">Open trade</span></th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
@@ -418,6 +448,7 @@ function DashboardContent() {
                           {order.status}
                         </span>
                       </td>
+                      <td className="py-4 text-right"><Link href={`/trade/${order.id}`} className="text-xs font-bold text-[#d8ff96] transition hover:text-white">Open →</Link></td>
                     </tr>
                   ))}
                 </tbody>

@@ -36,10 +36,14 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { orderId, action } = body; // action will be 'APPROVE' or 'REJECT'
+    const { orderId, action } = body;
+    const resultDescription = typeof body.resultDescription === "string" ? body.resultDescription.trim() : "";
 
-    if (typeof orderId !== 'string' || !['APPROVE', 'REJECT'].includes(action)) {
+    if (typeof orderId !== 'string' || !['APPROVE', 'REJECT', 'SUCCESS', 'FAIL'].includes(action)) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
+    if ((action === "FAIL" || action === "REJECT") && (!resultDescription || resultDescription.length > 800)) {
+      return NextResponse.json({ error: "Add a clear failure description (up to 800 characters)." }, { status: 400 });
     }
 
     const order = await prisma.order.findUnique({ 
@@ -51,15 +55,50 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    if (action === "SUCCESS" || action === "FAIL") {
+      if (order.type !== "SELL_GIFTCARD") {
+        return NextResponse.json({ error: "Use the withdrawal actions for crypto trades." }, { status: 400 });
+      }
+
+      const isSuccessful = action === "SUCCESS";
+      const result = await prisma.order.updateMany({
+        where: { id: orderId, status: "PENDING" },
+        data: {
+          status: isSuccessful ? "COMPLETED" : "REJECTED",
+          resultDescription: isSuccessful ? null : resultDescription,
+          resolvedAt: new Date(),
+        },
+      });
+      if (result.count !== 1) return NextResponse.json({ error: "This order has already been processed." }, { status: 409 });
+
+      await prisma.tradeMessage.create({
+        data: {
+          orderId,
+          senderId: session.user.id,
+          body: isSuccessful
+            ? "Admin result: Your gift-card trade was successful. No further action is needed."
+            : `Admin result: Your gift-card trade failed. Reason: ${resultDescription}`,
+        },
+      });
+      return NextResponse.json({ message: isSuccessful ? "Gift-card trade marked successful." : "Gift-card trade marked failed with the supplied reason." }, { status: 200 });
+    }
+
     if (action === 'APPROVE') {
       if (order.type === 'SELL_CRYPTO') {
         const approvedOrder = await prisma.order.updateMany({
           where: { id: orderId, status: 'PENDING' },
-          data: { status: 'COMPLETED' },
+          data: { status: 'COMPLETED', resultDescription: null, resolvedAt: new Date() },
         });
         if (approvedOrder.count !== 1) {
           return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });
         }
+        await prisma.tradeMessage.create({
+          data: {
+            orderId,
+            senderId: session.user.id,
+            body: "Admin result: Your crypto withdrawal was approved. Your saved bank account will be paid.",
+          },
+        });
         return NextResponse.json({ message: 'Crypto withdrawal approved. Pay the saved default bank account.' }, { status: 200 });
       }
 
@@ -124,11 +163,12 @@ export async function PATCH(req: Request) {
     if (action === 'REJECT') {
       const rejectedOrder = await prisma.order.updateMany({
         where: { id: orderId, status: 'PENDING' },
-        data: { status: 'REJECTED' },
+        data: { status: 'REJECTED', resultDescription, resolvedAt: new Date() },
       });
       if (rejectedOrder.count !== 1) {
         return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });
       }
+      await prisma.tradeMessage.create({ data: { orderId, senderId: session.user.id, body: `Admin result: This trade failed. Reason: ${resultDescription}` } });
       return NextResponse.json({ message: "Order rejected." }, { status: 200 });
     }
 

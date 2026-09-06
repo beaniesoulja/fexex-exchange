@@ -21,8 +21,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Your Fexex account could not be found." }, { status: 404 });
     }
 
-    if (typeof brand !== 'string' || typeof country !== 'string' || country.length > 80) {
+    if (typeof brand !== 'string' || !brand.trim() || brand.length > 80 || typeof country !== 'string' || country.length > 80) {
       return NextResponse.json({ error: "Choose a supported gift card for a Naira payout." }, { status: 400 });
+    }
+    if (typeof subcategory === "string" && subcategory.length > 240) {
+      return NextResponse.json({ error: "Choose a valid gift-card sub-category." }, { status: 400 });
+    }
+    if (typeof cardCode !== "undefined" && (typeof cardCode !== "string" || cardCode.length > 500)) {
+      return NextResponse.json({ error: "Enter a valid card code." }, { status: 400 });
+    }
+    if (typeof cardPin !== "undefined" && (typeof cardPin !== "string" || cardPin.length > 120)) {
+      return NextResponse.json({ error: "Enter a valid card PIN." }, { status: 400 });
+    }
+    if (typeof imageBase64 !== "undefined" && imageBase64 !== null && (typeof imageBase64 !== "string" || !imageBase64.startsWith("data:image/") || imageBase64.length > 3_000_000)) {
+      return NextResponse.json({ error: "Upload a valid card image under 2MB." }, { status: 400 });
     }
 
     await ensurePricingDefaults();
@@ -64,25 +76,30 @@ export async function POST(req: Request) {
           giftCardBrand: brand,
           giftCardCountry: selectedSubcategory?.country ?? country,
           giftCardSubcategory: selectedSubcategory?.label ?? null,
-          giftCardCode: `${cardCode || 'N/A'} | ${cardPin || 'N/A'}`,
-          giftCardImage: imageBase64,
+          giftCardCode: `${cardCode?.trim() || 'N/A'} | ${cardPin?.trim() || 'N/A'}`,
+          giftCardImage: imageBase64 ?? null,
         },
+      });
+
+      const orderWithReference = await tx.order.update({
+        where: { id: savedOrder.id },
+        data: { referenceId: `FEX-${savedOrder.id.toUpperCase()}` },
       });
 
       await tx.userActivity.create({
         data: {
           userId: user.id,
-          orderId: savedOrder.id,
+          orderId: orderWithReference.id,
           type: 'TRADE_SUBMITTED',
-          details: `Submitted ${brand} gift card for ${numericAmount} USD.`,
+          details: `Submitted ${brand} gift card for ${numericAmount} USD. Trade session: ${orderWithReference.referenceId}.`,
         },
       });
 
       await tx.tradeMessage.create({
-        data: { orderId: savedOrder.id, senderId: user.id, body: "Gift card submitted. I am ready for Admin review." },
+        data: { orderId: orderWithReference.id, senderId: user.id, body: `Gift card submitted. Trade session ID: ${orderWithReference.referenceId}. I am ready for Admin review.` },
       });
 
-      return savedOrder;
+      return orderWithReference;
     });
     try {
       await notifyAdmin({
@@ -90,7 +107,8 @@ export async function POST(req: Request) {
         brand,
         country,
         amount: numericAmount,
-        totalValue,
+      totalValue,
+      referenceId: order.referenceId,
       });
     } catch (error) {
       // Keep the saved trade intact if Telegram is temporarily unavailable.
@@ -100,6 +118,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       message: "Order submitted successfully! Admin is reviewing.", 
       orderId: order.id,
+      referenceId: order.referenceId,
       expectedPayout: totalValue,
       currency: "NGN",
       tradeRoom: `/trade/${order.id}`,
@@ -107,9 +126,6 @@ export async function POST(req: Request) {
 
   } catch (error: unknown) {
     console.error("❌ Detailed Order creation error:", error);
-    return NextResponse.json({ 
-      error: "Internal Server Error", 
-      details: error instanceof Error ? error.message : "Unknown error",
-    }, { status: 500 });
+    return NextResponse.json({ error: "We could not submit this gift-card trade. Please try again." }, { status: 500 });
   }
 }

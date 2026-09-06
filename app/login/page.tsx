@@ -59,7 +59,7 @@ export default function LoginPage() {
     <main className="fexex-surface flex min-h-screen items-center justify-center bg-[#161818] p-4 text-[#f4f3ee]">
       <div className="w-full max-w-md rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-8 shadow-2xl shadow-black/40">
         {/* FIXED: Changed from "Admin Login" to a general welcome message */}
-        <div className="mb-6 flex justify-center"><Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-9 w-auto" /></div>
+        <div className="mb-6 flex justify-center"><Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-9 w-auto" style={{ width: "auto" }} /></div>
         <h1 className="mb-2 text-center text-2xl font-bold">Welcome back</h1>
         <p className="mb-6 text-center text-sm text-[#a9afa9]">Your next move, simplified.</p>
 

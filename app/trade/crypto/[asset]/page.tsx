@@ -8,6 +8,7 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { AppHeader } from "@/components/app-header";
 import { formatNaira } from "@/lib/currency";
+import { stashReceiptPreview } from "@/lib/receipt-cache";
 
 interface CryptoOption {
   asset: string;
@@ -92,8 +93,28 @@ export default function CryptoTradePage() {
         setMessage(data.error ?? "We could not submit your withdrawal request.");
         return;
       }
-      setMessage(`Withdrawal ${data.orderId} submitted for Admin review. Expected payout: ${formatNaira(data.expectedPayout)}.`);
-      setUsdValue("");
+      stashReceiptPreview(data.orderId, {
+        sessionId: data.referenceId ?? `FEX-${String(data.orderId).toUpperCase()}`,
+        issuedAt: new Date().toISOString(),
+        status: "PENDING",
+        resultDescription: null,
+        resolvedAt: null,
+        customer: session?.user?.username ? `@${session.user.username}` : session?.user?.email ?? "",
+        trade: {
+          type: "SELL_CRYPTO",
+          amountUsd: numericUsdValue,
+          nairaPerUsd: crypto.nairaPayoutPerUsd,
+          expectedPayoutNaira: data.expectedPayout,
+          giftCard: null,
+          crypto: {
+            asset: crypto.asset,
+            payoutBankName: defaultBankAccount.bankName,
+            payoutAccountName: defaultBankAccount.legalName,
+            payoutAccountNumber: `••••••${defaultBankAccount.bankAccountNumber.slice(-4)}`,
+          },
+        },
+      });
+      router.push(`/trade/${data.orderId}/receipt`);
     } catch {
       setMessage("A network error occurred. Please try again.");
     } finally {

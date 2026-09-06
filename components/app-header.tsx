@@ -6,13 +6,14 @@ import { useState, type ReactNode } from "react";
 
 import { ProfileMenu } from "@/components/profile-menu";
 
-type IconName = "home" | "trade" | "wallet" | "support" | "chevron";
+type IconName = "home" | "trade" | "wallet" | "support" | "chevron" | "pending";
 
 function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
     home: <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" />,
     trade: <><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M7 10h10M7 14h7" /><path d="m15 7 3 3-3 3" /></>,
     wallet: <><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3" /><path d="M3 9h18" /><path d="M16 14h.01" /></>,
+    pending: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3 2" /></>,
     support: <><path d="M4 14v-2a8 8 0 0 1 16 0v2" /><path d="M4 14h3v5H5a1 1 0 0 1-1-1v-4ZM20 14h-3v5h2a1 1 0 0 0 1-1v-4Z" /><path d="M17 19c0 1.5-1.5 2-3 2h-2" /></>,
     chevron: <path d="m7 10 5 5 5-5" />,
   };
@@ -58,6 +59,7 @@ export function AppHeader({ username, avatarData }: { username?: string; avatarD
           </div>
 
           <HeaderLink href="/wallet" icon="wallet" active={pathname === "/wallet"}>Wallet</HeaderLink>
+          <HeaderLink href="/trades" icon="pending" active={pathname === "/trades"}>Pending</HeaderLink>
 
           <div className="relative shrink-0">
             <button type="button" onClick={() => setOpenMenu(openMenu === "support" ? null : "support")} aria-expanded={openMenu === "support"} aria-controls="support-menu" className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#1d2220] transition hover:bg-[#eff1ed]">

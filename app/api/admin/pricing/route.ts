@@ -13,6 +13,8 @@ const MAX_SUBCATEGORY_LABEL_LENGTH = 180;
 const MAX_ICON_LENGTH = 2_800_000;
 const CATALOG_CODE = /^[A-Z0-9_-]{2,16}$/;
 
+class PricingValidationError extends Error {}
+
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
   return session?.user?.role === "ADMIN";
@@ -20,21 +22,21 @@ async function requireAdmin() {
 
 function cleanText(value: unknown, field: string, required = true, maxLength = MAX_LABEL_LENGTH) {
   const text = typeof value === "string" ? value.trim() : "";
-  if (required && !text) throw new Error(`${field} is required.`);
-  if (text.length > maxLength) throw new Error(`${field} must be ${maxLength} characters or fewer.`);
+  if (required && !text) throw new PricingValidationError(`${field} is required.`);
+  if (text.length > maxLength) throw new PricingValidationError(`${field} must be ${maxLength} characters or fewer.`);
   return text;
 }
 
 function cleanIcon(value: unknown) {
   const icon = typeof value === "string" ? value.trim() : "";
-  if (icon.length > MAX_ICON_LENGTH) throw new Error("The image is too large. Choose an image under 2MB.");
+  if (icon.length > MAX_ICON_LENGTH) throw new PricingValidationError("The image is too large. Choose an image under 2MB.");
   return icon || null;
 }
 
 function readPayoutRate(value: unknown, label: string) {
   const rate = Number(value);
   if (!Number.isFinite(rate) || rate < 0 || rate > MAX_NAIRA_PAYOUT_RATE) {
-    throw new Error(`Enter a valid Naira payout rate for ${label}.`);
+    throw new PricingValidationError(`Enter a valid Naira payout rate for ${label}.`);
   }
   return rate;
 }
@@ -134,41 +136,67 @@ export async function PATCH(request: Request) {
     const suppliedBrands = new Set<string>();
     const giftCardUpdates = giftCardRates.map((item) => {
       const brand = cleanText(item?.brand, "Gift card name");
-      if (suppliedBrands.has(brand)) throw new Error("Each gift card can only be included once.");
+      if (suppliedBrands.has(brand)) throw new PricingValidationError("Each gift card can only be included once.");
       suppliedBrands.add(brand);
-      if (typeof item?.isActive !== "boolean") throw new Error(`Choose whether FEXEX is buying ${brand}.`);
+      if (typeof item?.isActive !== "boolean") throw new PricingValidationError(`Choose whether FEXEX is buying ${brand}.`);
       return { brand, nairaPayoutPerUsd: readPayoutRate(item.nairaPayoutPerUsd, brand), isActive: item.isActive };
     });
     const suppliedAssets = new Set<string>();
     const cryptoUpdates = cryptoRates.map((item) => {
       const asset = cleanText(item?.asset, "Crypto ticker").toUpperCase();
-      if (suppliedAssets.has(asset)) throw new Error("Each crypto asset can only be included once.");
+      if (suppliedAssets.has(asset)) throw new PricingValidationError("Each crypto asset can only be included once.");
       suppliedAssets.add(asset);
-      if (typeof item?.isActive !== "boolean") throw new Error(`Choose whether FEXEX is buying ${asset}.`);
+      if (typeof item?.isActive !== "boolean") throw new PricingValidationError(`Choose whether FEXEX is buying ${asset}.`);
       return { asset, nairaPayoutPerUsd: readPayoutRate(item.nairaPayoutPerUsd, asset), isActive: item.isActive };
     });
     const subcategoryUpdates = giftCardSubcategories.map((item) => {
       const id = cleanText(item?.id, "Gift card sub-category ID");
       const label = cleanText(item?.label, "Gift card sub-category", true, MAX_SUBCATEGORY_LABEL_LENGTH);
-      if (typeof item?.isActive !== "boolean") throw new Error(`Choose whether FEXEX is buying ${label}.`);
+      if (typeof item?.isActive !== "boolean") throw new PricingValidationError(`Choose whether FEXEX is buying ${label}.`);
       return { id, label, nairaPayoutPerUsd: readPayoutRate(item.nairaPayoutPerUsd, label), isActive: item.isActive };
     });
 
     await ensurePricingDefaults();
-    await prisma.$transaction(async (tx) => {
-      await tx.pricingSettings.update({ where: { id: "default" }, data: { usdToNairaRate } });
-      const savedGiftCardRates = await Promise.all(giftCardUpdates.map((rate) => tx.giftCardRate.update({ where: { brand: rate.brand }, data: { nairaPayoutPerUsd: rate.nairaPayoutPerUsd, payoutPercent: (rate.nairaPayoutPerUsd / usdToNairaRate) * 100, isActive: rate.isActive } })));
-      const savedCryptoRates = await Promise.all(cryptoUpdates.map((rate) => tx.cryptoRate.update({ where: { asset: rate.asset }, data: rate })));
-      await Promise.all(subcategoryUpdates.map((subcategory) => tx.giftCardSubcategory.update({ where: { id: subcategory.id }, data: { nairaPayoutPerUsd: subcategory.nairaPayoutPerUsd, isActive: subcategory.isActive } })));
-      return { savedGiftCardRates, savedCryptoRates };
+    const [existingSettings, existingGiftCards, existingCrypto, existingSubcategories] = await Promise.all([
+      prisma.pricingSettings.findUniqueOrThrow({ where: { id: "default" } }),
+      prisma.giftCardRate.findMany({ select: { brand: true, nairaPayoutPerUsd: true, isActive: true } }),
+      prisma.cryptoRate.findMany({ select: { asset: true, nairaPayoutPerUsd: true, isActive: true } }),
+      prisma.giftCardSubcategory.findMany({ select: { id: true, nairaPayoutPerUsd: true, isActive: true } }),
+    ]);
+    const existingGiftCardsByBrand = new Map(existingGiftCards.map((rate) => [rate.brand, rate]));
+    const existingCryptoByAsset = new Map(existingCrypto.map((rate) => [rate.asset, rate]));
+    const existingSubcategoriesById = new Map(existingSubcategories.map((subcategory) => [subcategory.id, subcategory]));
+
+    for (const rate of giftCardUpdates) if (!existingGiftCardsByBrand.has(rate.brand)) throw new PricingValidationError(`${rate.brand} is not in the current gift-card catalog.`);
+    for (const rate of cryptoUpdates) if (!existingCryptoByAsset.has(rate.asset)) throw new PricingValidationError(`${rate.asset} is not in the current crypto catalog.`);
+    for (const subcategory of subcategoryUpdates) if (!existingSubcategoriesById.has(subcategory.id)) throw new PricingValidationError(`${subcategory.label} is not in the current gift-card catalog.`);
+
+    const giftCardChanges = giftCardUpdates.filter((rate) => {
+      const current = existingGiftCardsByBrand.get(rate.brand)!;
+      return current.nairaPayoutPerUsd !== rate.nairaPayoutPerUsd || current.isActive !== rate.isActive || existingSettings.usdToNairaRate !== usdToNairaRate;
     });
+    const cryptoChanges = cryptoUpdates.filter((rate) => {
+      const current = existingCryptoByAsset.get(rate.asset)!;
+      return current.nairaPayoutPerUsd !== rate.nairaPayoutPerUsd || current.isActive !== rate.isActive;
+    });
+    const subcategoryChanges = subcategoryUpdates.filter((subcategory) => {
+      const current = existingSubcategoriesById.get(subcategory.id)!;
+      return current.nairaPayoutPerUsd !== subcategory.nairaPayoutPerUsd || current.isActive !== subcategory.isActive;
+    });
+    const pricingChanges = [
+      ...(existingSettings.usdToNairaRate === usdToNairaRate ? [] : [prisma.pricingSettings.update({ where: { id: "default" }, data: { usdToNairaRate } })]),
+      ...giftCardChanges.map((rate) => prisma.giftCardRate.update({ where: { brand: rate.brand }, data: { nairaPayoutPerUsd: rate.nairaPayoutPerUsd, payoutPercent: (rate.nairaPayoutPerUsd / usdToNairaRate) * 100, isActive: rate.isActive } })),
+      ...cryptoChanges.map((rate) => prisma.cryptoRate.update({ where: { asset: rate.asset }, data: rate })),
+      ...subcategoryChanges.map((subcategory) => prisma.giftCardSubcategory.update({ where: { id: subcategory.id }, data: { nairaPayoutPerUsd: subcategory.nairaPayoutPerUsd, isActive: subcategory.isActive } })),
+    ];
+    if (pricingChanges.length > 0) await prisma.$transaction(pricingChanges);
     const [savedGiftCardRates, savedCryptoRates] = await Promise.all([
       prisma.giftCardRate.findMany({ include: { subcategories: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] } }, orderBy: { brand: "asc" } }),
       prisma.cryptoRate.findMany({ orderBy: { asset: "asc" } }),
     ]);
     return NextResponse.json({ message: "Pricing saved successfully.", usdToNairaRate, giftCardRates: savedGiftCardRates, cryptoRates: savedCryptoRates });
   } catch (error) {
-    if (error instanceof Error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof PricingValidationError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error("Failed to save pricing settings:", error);
     return NextResponse.json({ error: "Failed to save pricing settings." }, { status: 500 });
   }

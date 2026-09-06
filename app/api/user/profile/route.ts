@@ -5,6 +5,14 @@ import { authOptions } from '@/lib/auth';
 import { NIGERIAN_BANKS } from '@/lib/nigerian-banks';
 import { prisma } from '@/lib/prisma';
 
+const MINIMUM_AGE_YEARS = 18;
+
+function isAtLeastMinimumAge(dateOfBirth: Date) {
+  const cutoff = new Date();
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - MINIMUM_AGE_YEARS);
+  return dateOfBirth <= cutoff;
+}
+
 export async function GET() {
   try {
     // 1. Get the logged-in user's session
@@ -104,6 +112,9 @@ export async function POST(req: Request) {
         dateOfBirth = new Date(`${normalizedDate}T12:00:00.000Z`);
         if (!Number.isFinite(parsedYear) || Number.isNaN(dateOfBirth.getTime()) || dateOfBirth.toISOString().slice(0, 10) !== normalizedDate || dateOfBirth > new Date()) {
           return NextResponse.json({ error: "Enter your date of birth as DD-MM-YYYY, for example 29-08-1995.", field: "dateOfBirth" }, { status: 400 });
+        }
+        if (!isAtLeastMinimumAge(dateOfBirth)) {
+          return NextResponse.json({ error: `You must be at least ${MINIMUM_AGE_YEARS} years old to use FEXEX.`, field: "dateOfBirth" }, { status: 400 });
         }
       }
 

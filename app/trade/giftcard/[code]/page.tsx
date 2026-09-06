@@ -9,6 +9,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 
 import { AppHeader } from "@/components/app-header";
 import { formatNaira } from "@/lib/currency";
+import { stashReceiptPreview } from "@/lib/receipt-cache";
 
 interface GiftCardOption {
   name: string;
@@ -115,7 +116,30 @@ export default function GiftCardTradePage() {
         setMessage(data.error ?? "We could not submit your gift card.");
         return;
       }
-      router.push(data.tradeRoom ?? `/trade/${data.orderId}`);
+      const submittedAmount = Number(formData.get("amount"));
+      stashReceiptPreview(data.orderId, {
+        sessionId: data.referenceId ?? `FEX-${String(data.orderId).toUpperCase()}`,
+        issuedAt: new Date().toISOString(),
+        status: "PENDING",
+        resultDescription: null,
+        resolvedAt: null,
+        customer: session?.user?.username ? `@${session.user.username}` : session?.user?.email ?? "",
+        trade: {
+          type: "SELL_GIFTCARD",
+          amountUsd: Number.isFinite(submittedAmount) ? submittedAmount : 0,
+          nairaPerUsd: effectiveRate,
+          expectedPayoutNaira: data.expectedPayout,
+          giftCard: {
+            brand: giftCard.name,
+            country: selectedSubcategory?.country ?? null,
+            subcategory: selectedSubcategory?.label ?? null,
+            cardDetails: "Submitted securely for Admin review",
+            imageSubmitted: Boolean(imageBase64),
+          },
+          crypto: null,
+        },
+      });
+      router.push(`/trade/${data.orderId}/receipt`);
     } catch {
       setMessage("A network error occurred. Please try again.");
     } finally {

@@ -51,17 +51,25 @@ async function seedPricingDefaults() {
     ),
   ]);
 
-  const seedSubcategories = async (giftCardRateId: string, entries: ReadonlyArray<readonly [string, string, string]>) => {
+  const seedSubcategories = async (giftCardRate: { id: string; nairaPayoutPerUsd: number; isActive: boolean }, entries: ReadonlyArray<readonly [string, string, string]>) => {
     await prisma.giftCardSubcategory.createMany({
-      data: entries.map(([label, country, cardType], index) => ({ giftCardRateId, label, country, cardType, sortOrder: index })),
+      data: entries.map(([label, country, cardType], index) => ({
+        giftCardRateId: giftCardRate.id,
+        label,
+        country,
+        cardType,
+        sortOrder: index,
+        nairaPayoutPerUsd: giftCardRate.nairaPayoutPerUsd,
+        isActive: giftCardRate.isActive && giftCardRate.nairaPayoutPerUsd > 0,
+      })),
       skipDuplicates: true,
     });
   };
   // The trade screen asks for crypto and gift-card rates together. Seeding
   // one card at a time prevents the otherwise competing database transactions.
   for (const [brand, entries] of Object.entries(defaultGiftCardSubcategoriesByBrand)) {
-    const giftCardRate = await prisma.giftCardRate.findUnique({ where: { brand }, select: { id: true } });
-    if (giftCardRate) await seedSubcategories(giftCardRate.id, entries);
+    const giftCardRate = await prisma.giftCardRate.findUnique({ where: { brand }, select: { id: true, nairaPayoutPerUsd: true, isActive: true } });
+    if (giftCardRate) await seedSubcategories(giftCardRate, entries);
   }
 }
 

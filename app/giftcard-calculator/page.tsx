@@ -38,11 +38,19 @@ export default function GiftcardCalculatorPage() {
   }, []);
 
   useEffect(() => {
-    const initialLoad = window.setTimeout(() => void loadRates(), 0);
-    const interval = window.setInterval(() => void loadRates(), 3000);
+    let loadInFlight = false;
+    const refreshRates = () => {
+      if (document.visibilityState !== "visible" || loadInFlight) return;
+      loadInFlight = true;
+      void loadRates().finally(() => { loadInFlight = false; });
+    };
+    const initialLoad = window.setTimeout(refreshRates, 0);
+    const interval = window.setInterval(refreshRates, 24 * 60 * 60 * 1_000);
+    document.addEventListener("visibilitychange", refreshRates);
     return () => {
       window.clearTimeout(initialLoad);
       window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshRates);
     };
   }, [loadRates]);
 
@@ -57,7 +65,7 @@ export default function GiftcardCalculatorPage() {
     <main className="fexex-surface min-h-screen bg-[#161818] text-[#f4f3ee]">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 sm:px-8 sm:py-7">
         <Link href="/" aria-label="FEXEX home">
-          <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" priority />
+          <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" style={{ width: "auto" }} priority />
         </Link>
         <div className="flex items-center gap-3">
           <Link href="/trade" className="hidden text-sm font-semibold text-[#d7dbd4] transition hover:text-[#c6f65c] sm:block">
@@ -145,7 +153,7 @@ export default function GiftcardCalculatorPage() {
               {isLoading ? (
                 <div className="h-32 animate-pulse rounded-2xl bg-[#f4f3ee]/5" />
               ) : activeCards.length ? (
-                activeCards.sort((a, b) => b.nairaPayoutPerUsd - a.nairaPayoutPerUsd).map((card) => (
+                [...activeCards].sort((a, b) => b.nairaPayoutPerUsd - a.nairaPayoutPerUsd).map((card) => (
                   <button key={card.code} type="button" onClick={() => setSelectedName(card.name)} className="flex w-full items-center justify-between rounded-xl border border-transparent bg-[#202323] p-3 text-left transition hover:border-[#c6f65c]/45 hover:bg-[#202323]/80">
                     <span className="flex items-center gap-3">
                       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#d6c7ff]/15 text-[10px] font-extrabold tracking-wide text-[#e5dcff]">{card.code}</span>
@@ -160,7 +168,7 @@ export default function GiftcardCalculatorPage() {
             </div>
 
             <div className="mt-6 border-t border-[#f4f3ee]/10 pt-5 text-xs leading-5 text-[#777a75]">
-              Rates refresh automatically every 3 seconds and may change before a trade is reviewed.{updatedAt && <span className="block pt-1 text-[#a9afa9]">Updated just now.</span>}
+              Rates refresh automatically about every 24 hours and may change before a trade is reviewed.{updatedAt && <span className="block pt-1 text-[#a9afa9]">Updated just now.</span>}
             </div>
           </aside>
         </div>

@@ -5,6 +5,13 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MINIMUM_AGE_YEARS = 18;
+
+function isAtLeastMinimumAge(dateOfBirth: Date) {
+  const cutoff = new Date();
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - MINIMUM_AGE_YEARS);
+  return dateOfBirth <= cutoff;
+}
 
 function duplicateFieldResponse(field: "username" | "phoneNumber" | "email") {
   const messages = {
@@ -44,6 +51,10 @@ export async function POST(request: Request) {
 
   if (!dateOfBirth || Number.isNaN(dateOfBirth.getTime()) || dateOfBirth.toISOString().slice(0, 10) !== dateOfBirthValue || dateOfBirth > new Date()) {
     return NextResponse.json({ error: "Enter a valid date of birth." }, { status: 400 });
+  }
+
+  if (!isAtLeastMinimumAge(dateOfBirth)) {
+    return NextResponse.json({ error: `You must be at least ${MINIMUM_AGE_YEARS} years old to create a FEXEX account.` }, { status: 400 });
   }
 
   if (!/^\+\d{1,3}$/.test(phoneCountryCode) || !/^\d{10}$/.test(phoneNumber)) {
@@ -94,6 +105,9 @@ export async function POST(request: Request) {
         phoneNumber,
         passwordHash,
         wallet: { create: {} },
+        mailingListSubscriber: {
+          create: { email, source: "signup" },
+        },
       },
     });
 

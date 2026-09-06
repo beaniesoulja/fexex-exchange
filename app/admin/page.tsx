@@ -1,7 +1,6 @@
 // app/admin/page.tsx
 "use client";
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useEffect, useCallback, type ChangeEvent, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -11,6 +10,7 @@ import { ProfileMenu } from "@/components/profile-menu";
 // 1. FIXED: Added giftCardImage to the interface
 interface Order {
   id: string;
+  referenceId: string | null;
   type: string;
   amount: number;
   rate: number;
@@ -93,6 +93,10 @@ interface Analytics {
     pendingTrades: number;
     successfulTrades: number;
     declinedTrades: number;
+    todayTrades: number;
+    todayVolume: number;
+    pendingGiftCardTrades: number;
+    pendingCryptoTrades: number;
   };
   users: UserSummary[];
   topUsers: UserSummary[];
@@ -110,6 +114,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [failureDescriptions, setFailureDescriptions] = useState<Record<string, string>>({});
   const [pricing, setPricing] = useState<Pricing | null>(null);
   const [pricingSaving, setPricingSaving] = useState(false);
   const [pricingMessage, setPricingMessage] = useState("");
@@ -122,6 +127,8 @@ export default function AdminDashboard() {
   const [subcategorySaving, setSubcategorySaving] = useState(false);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [analyticsError, setAnalyticsError] = useState("");
+  const [activePanel, setActivePanel] = useState<"overview" | "verification" | "rates" | "operations">("overview");
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -172,14 +179,24 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (status !== "authenticated" || session?.user?.role !== "ADMIN") return;
 
-    const refreshLiveData = () => {
+    let ordersInFlight = false;
+    let analyticsInFlight = false;
+    const refreshOrders = () => {
+      if (document.visibilityState !== "visible" || ordersInFlight) return;
+      ordersInFlight = true;
       void fetch("/api/admin/orders")
         .then(async (res) => {
           if (!res.ok) throw new Error("Failed to load orders");
           return res.json();
         })
         .then(setOrders)
-        .catch((error) => console.error("Failed to refresh orders", error));
+        .catch((error) => console.error("Failed to refresh orders", error))
+        .finally(() => { ordersInFlight = false; });
+    };
+
+    const refreshAnalytics = () => {
+      if (document.visibilityState !== "visible" || analyticsInFlight || (activePanel !== "overview" && activePanel !== "operations")) return;
+      analyticsInFlight = true;
       void fetch("/api/admin/analytics")
         .then(async (res) => {
           if (!res.ok) throw new Error("Failed to load analytics");
@@ -189,26 +206,44 @@ export default function AdminDashboard() {
         .catch((error) => {
           console.error("Failed to refresh analytics", error);
           setAnalyticsError("We could not load user activity right now.");
-        });
+        })
+        .finally(() => { analyticsInFlight = false; });
     };
 
-    const interval = window.setInterval(refreshLiveData, 3_000);
-    return () => window.clearInterval(interval);
-  }, [status, session]);
+    // The initial effect already fills the dashboard. Keep the verification
+    // queue responsive without rerunning its expensive analytics aggregation.
+    const ordersInterval = window.setInterval(refreshOrders, 15_000);
+    const analyticsInterval = window.setInterval(refreshAnalytics, 60_000);
+    const onVisibilityChange = () => {
+      refreshOrders();
+      refreshAnalytics();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(ordersInterval);
+      window.clearInterval(analyticsInterval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [status, session, activePanel]);
 
-  const handleAction = async (orderId: string, action: "APPROVE" | "REJECT") => {
+  const handleAction = async (orderId: string, action: "APPROVE" | "REJECT" | "SUCCESS" | "FAIL") => {
     setActionLoading(orderId);
     try {
       const res = await fetch("/api/admin/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, action }),
+        body: JSON.stringify({ orderId, action, resultDescription: failureDescriptions[orderId] ?? "" }),
       });
       
       if (res.ok) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
+        setFailureDescriptions((current) => {
+          const next = { ...current };
+          delete next[orderId];
+          return next;
+        });
         void fetchAnalytics();
-        alert(`✅ ${action === "APPROVE" ? "Withdrawal approved" : "Order rejected"}!`);
+        alert(`✅ ${action === "SUCCESS" ? "Gift-card trade marked successful" : action === "FAIL" ? "Gift-card trade marked failed" : action === "APPROVE" ? "Withdrawal approved" : "Trade rejected"}!`);
       } else {
         const data = await res.json().catch(() => null);
         alert(`❌ ${data?.error ?? "Failed to process order."}`);
@@ -390,32 +425,66 @@ export default function AdminDashboard() {
   };
 
   const selectedGiftCard = pricing?.giftCardRates.find((rate) => rate.brand === selectedGiftCardBrand) ?? null;
+  const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? orders[0] ?? null;
+  const liveAssets = (pricing?.cryptoRates ?? []).filter((rate) => rate.isActive).slice(0, 4);
 
   if (status === "loading" || loading) {
     return <div className="flex min-h-screen items-center justify-center bg-[#161818] p-8 text-center text-xl text-[#a9afa9]">Loading secure dashboard...</div>;
   }
 
   return (
-    <main className="fexex-surface min-h-screen bg-[#161818] p-4 text-[#f4f3ee] md:p-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="break-all text-sm text-[#a9afa9]">Logged in as: {session?.user?.email}</p>
-          </div>
-          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
-            <span className="text-xs text-[#a9afa9]">Updates automatically</span>
-            <ProfileMenu username={session?.user?.username} avatarData={session?.user?.avatarData} />
-          </div>
-        </div>
-
-        <section className="mb-8" aria-labelledby="activity-heading">
-          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold tracking-wide text-[#c6f65c]">OPERATIONS OVERVIEW</p>
-              <h2 id="activity-heading" className="mt-1 text-2xl font-bold text-[#f4f3ee]">User activity</h2>
+    <main className="fexex-surface min-h-screen bg-[#111414] p-4 text-[#f4f3ee] md:p-8">
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-5 rounded-3xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-5 shadow-2xl shadow-black/20 sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c6f65c] text-lg font-black text-[#151817]">F</span>
+                <div><p className="text-xs font-bold tracking-[0.24em] text-[#c6f65c]">FEXEX CONTROL ROOM</p><h1 className="mt-1 text-2xl font-bold sm:text-3xl">Exchange operations</h1></div>
+              </div>
+              <p className="mt-3 break-all text-sm text-[#a9afa9]">Signed in as {session?.user?.email} · System manager</p>
             </div>
-            {analytics && <p className="text-xs text-[#a9afa9]">Online = active in the last {analytics.onlineWindowMinutes} minutes</p>}
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#f4f3ee]/10 bg-[#141717] px-4 py-3 lg:justify-end">
+              <div><p className="flex items-center gap-2 text-xs font-semibold text-[#d8ff96]"><span className="h-2 w-2 rounded-full bg-[#c6f65c]" />Live operations</p><p className="mt-1 text-xs text-[#777a75]">Trades refresh every 15s · Analytics every 60s</p></div>
+              <ProfileMenu username={session?.user?.username} avatarData={session?.user?.avatarData} />
+            </div>
+          </div>
+          <nav className="mt-6 flex gap-2 overflow-x-auto border-t border-[#f4f3ee]/10 pt-4" aria-label="Admin workspace">
+            {[
+              ["overview", "Overview"],
+              ["verification", `Verify trades${orders.length ? ` (${orders.length})` : ""}`],
+              ["rates", "Rates & catalog"],
+              ["operations", "Users & safeguards"],
+            ].map(([panel, label]) => <button key={panel} type="button" onClick={() => setActivePanel(panel as typeof activePanel)} className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${activePanel === panel ? "bg-[#c6f65c] text-[#151817]" : "bg-[#202323] text-[#cdd2cb] hover:bg-[#2a302d]"}`}>{label}</button>)}
+          </nav>
+        </header>
+
+        {activePanel === "overview" && <section className="mb-8" aria-labelledby="activity-heading">
+          <div className="mb-4 flex flex-col gap-3 rounded-3xl border border-[#c6f65c]/20 bg-gradient-to-br from-[#253022] to-[#1a1d1d] p-5 sm:flex-row sm:items-end sm:justify-between">
+            <div><p className="text-xs font-semibold tracking-wide text-[#c6f65c]">LIVE DASHBOARD</p><h2 id="activity-heading" className="mt-1 text-2xl font-bold text-[#f4f3ee]">Everything needing attention, in one place.</h2><p className="mt-2 text-sm text-[#a9afa9]">Review pending trades first, then manage the current customer rates.</p></div>
+            <button type="button" onClick={() => setActivePanel("verification")} className="rounded-xl bg-[#c6f65c] px-4 py-2.5 text-sm font-bold text-[#151817]">Open verification queue</button>
+          </div>
+
+          <div className="mb-5 overflow-hidden rounded-2xl border border-[#f4f3ee]/10 bg-[#202323]">
+            <div className="flex min-w-max items-stretch divide-x divide-[#f4f3ee]/10">
+              <div className="px-4 py-3"><p className="text-[10px] font-bold tracking-[0.16em] text-[#777a75]">FEXEX PAYOUT TICKER</p><p className="mt-1 text-xs text-[#a9afa9]">Published buy rates</p></div>
+              {liveAssets.length > 0 ? liveAssets.map((asset) => <div key={asset.id} className="min-w-40 px-4 py-3"><p className="text-xs font-semibold text-[#d7dbd4]">{asset.asset}</p><p className="mt-1 text-sm font-bold text-[#d8ff96]">{formatNaira(asset.nairaPayoutPerUsd)} / $1</p></div>) : <div className="px-4 py-3 text-sm text-[#a9afa9]">Loading active crypto rates…</div>}
+            </div>
+          </div>
+
+          {analytics && <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              ["Today’s volume", formatNaira(analytics.stats.todayVolume), "All submitted trades today", "#c6f65c"],
+              ["Pending actions", analytics.stats.pendingTrades, `${analytics.stats.pendingGiftCardTrades} cards · ${analytics.stats.pendingCryptoTrades} crypto`, "#f5c76a"],
+              ["Trades today", analytics.stats.todayTrades, "New trade sessions", "#d6c7ff"],
+              ["Customers online", analytics.stats.onlineUsers, `Active in the last ${analytics.onlineWindowMinutes} minutes`, "#f4f3ee"],
+            ].map(([label, value, detail, color]) => <div key={String(label)} className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4"><p className="text-xs font-medium text-[#a9afa9]">{label}</p><p className="mt-2 text-2xl font-bold" style={{ color: String(color) }}>{value}</p><p className="mt-1 text-xs text-[#777a75]">{detail}</p></div>)}
+          </div>}
+
+          <div className="mb-5 grid gap-3 lg:grid-cols-3">
+            <div className={`rounded-2xl border p-4 ${orders.length ? "border-[#f5c76a]/40 bg-[#f5c76a]/10" : "border-[#c6f65c]/20 bg-[#c6f65c]/5"}`}><p className="text-xs font-bold tracking-wide text-[#f5c76a]">ALERT CENTER</p><p className="mt-2 font-semibold text-[#f4f3ee]">{orders.length ? `${orders.length} trade${orders.length === 1 ? "" : "s"} needs human review` : "No pending trades"}</p><p className="mt-1 text-xs leading-5 text-[#a9afa9]">Every trade remains pending until an authorized admin records an outcome.</p></div>
+            <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4"><p className="text-xs font-bold tracking-wide text-[#d6c7ff]">ACCESS SAFETY</p><p className="mt-2 font-semibold text-[#f4f3ee]">Admin-only workspace</p><p className="mt-1 text-xs leading-5 text-[#a9afa9]">Customer-facing prices stay separate from the controls in this workspace.</p></div>
+            <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4"><p className="text-xs font-bold tracking-wide text-[#c6f65c]">AUDIT TRAIL</p><p className="mt-2 font-semibold text-[#f4f3ee]">Live customer activity</p><p className="mt-1 text-xs leading-5 text-[#a9afa9]">Recent sign-ins and submitted trades appear below as they happen.</p></div>
           </div>
 
           {analyticsError ? (
@@ -515,9 +584,28 @@ export default function AdminDashboard() {
               </div>
             </>
           )}
-        </section>
+        </section>}
 
-        <section className="mb-8 rounded-2xl border border-[#d6c7ff]/25 bg-[#202323] p-5 shadow-lg shadow-black/20 sm:p-6" aria-labelledby="pricing-heading">
+        {activePanel === "operations" && <section className="mb-8 space-y-5" aria-labelledby="operations-heading">
+          <div className="rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-5 sm:p-6">
+            <p className="text-xs font-semibold tracking-wide text-[#d6c7ff]">USERS & SAFEGUARDS</p>
+            <h2 id="operations-heading" className="mt-1 text-2xl font-bold">Operational access, activity, and the next safety controls.</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a9afa9]">The current platform records logins and trade submissions, keeps trade decisions inside the admin queue, and restricts this workspace to admins.</p>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {[
+              ["Support agent", "Review card evidence and continue a trade-room conversation. Cannot release funds or edit pricing.", "#c6f65c"],
+              ["Risk analyst", "Review customer evidence and recommend a trade outcome. Account blocking needs a dedicated server-side policy before it can be enabled.", "#f5c76a"],
+              ["System manager", "Current admin role: review trades, set card and crypto rates, and manage the customer catalog.", "#d6c7ff"],
+            ].map(([role, description, color]) => <div key={String(role)} className="rounded-2xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-5"><span className="rounded-full px-2.5 py-1 text-xs font-bold" style={{ backgroundColor: `${String(color)}22`, color: String(color) }}>{role}</span><p className="mt-4 text-sm leading-6 text-[#a9afa9]">{description}</p></div>)}
+          </div>
+          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-5"><h3 className="text-lg font-bold">Safety coverage</h3><dl className="mt-4 space-y-3 text-sm"><div className="flex items-start justify-between gap-4 border-b border-[#f4f3ee]/10 pb-3"><dt className="text-[#a9afa9]">Trade resolution</dt><dd className="text-right font-semibold text-[#d8ff96]">Recorded with timestamp and customer-visible reason</dd></div><div className="flex items-start justify-between gap-4 border-b border-[#f4f3ee]/10 pb-3"><dt className="text-[#a9afa9]">Pricing changes</dt><dd className="text-right font-semibold text-[#d8ff96]">Admin-only, applies to new trades</dd></div><div className="flex items-start justify-between gap-4"><dt className="text-[#a9afa9]">KYC, bans & IP blocks</dt><dd className="text-right font-semibold text-[#f5c76a]">Not enabled yet — needs enforced backend workflows</dd></div></dl></div>
+            <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-5"><h3 className="text-lg font-bold">Recent activity diary</h3>{analytics?.recentActivities.length ? <ol className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">{analytics.recentActivities.map((activity) => <li key={activity.id} className="border-b border-[#f4f3ee]/10 pb-3 last:border-0"><div className="flex items-start justify-between gap-3"><p className="break-all text-sm font-semibold">{activity.user.email}</p><p className="shrink-0 text-xs text-[#777a75]">{new Date(activity.createdAt).toLocaleString()}</p></div><p className="mt-1 text-xs font-semibold text-[#d6c7ff]">{activity.type.replaceAll("_", " ")}</p>{activity.details && <p className="mt-1 text-sm text-[#a9afa9]">{activity.details}</p>}</li>)}</ol> : <p className="mt-4 text-sm text-[#a9afa9]">No recorded activity yet.</p>}</div>
+          </div>
+        </section>}
+
+        {activePanel === "rates" && <section className="mb-8 rounded-2xl border border-[#d6c7ff]/25 bg-[#202323] p-5 shadow-lg shadow-black/20 sm:p-6" aria-labelledby="pricing-heading">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-semibold tracking-wide text-[#d6c7ff]">DAILY PRICING</p>
@@ -669,83 +757,21 @@ export default function AdminDashboard() {
           ) : (
             <p className="mt-6 text-sm text-[#a9afa9]">Loading pricing controls...</p>
           )}
-        </section>
+        </section>}
 
-        {orders.length === 0 ? (
-          <div className="rounded-xl border border-[#f4f3ee]/10 bg-[#202323] p-8 text-center text-[#a9afa9] shadow-lg shadow-black/20">
-            No pending orders. You are all caught up! 🎉
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {orders.map((order) => (
-              <div key={order.id} className="rounded-xl border border-[#f4f3ee]/10 border-l-4 border-l-[#c6f65c] bg-[#202323] p-6 shadow-lg shadow-black/20">
-                <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <h2 className="text-xl font-bold text-[#f4f3ee]">
-                      {order.type === "SELL_CRYPTO" ? `${order.cryptoAsset ?? "Crypto"} withdrawal · $${order.amount.toLocaleString()}` : `${order.giftCardBrand} (${order.giftCardSubcategory ?? order.giftCardCountry}) - $${order.amount.toLocaleString()}`}
-                    </h2>
-                    <p className="text-sm text-[#a9afa9]">User: {order.user.email}</p>
-                    <p className="text-sm text-[#a9afa9]">
-                      Submitted: {new Date(order.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-2xl font-bold text-[#c6f65c]">
-                      Payout: {formatNaira(order.totalValue)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mb-4 space-y-3 rounded-lg bg-[#1a1d1d] p-4">
-                  {order.type === "SELL_CRYPTO" ? (
-                    <div className="space-y-1 text-sm text-[#d7dbd4]">
-                      <p className="text-xs font-semibold text-[#a9afa9]">DEFAULT WITHDRAWAL ACCOUNT</p>
-                      <p><strong>Bank:</strong> {order.payoutBankName ?? "Not saved"}</p>
-                      <p><strong>Account name:</strong> {order.payoutAccountName ?? "Not saved"}</p>
-                      <p><strong>Account number:</strong> {order.payoutBankAccountNumber ?? "Not saved"}</p>
-                    </div>
-                  ) : <>
-                  {order.giftCardImage && (
-                    <div className="mb-3">
-                      <p className="mb-1 text-xs font-semibold text-[#a9afa9]">UPLOADED IMAGE:</p>
-                      <Image
-                        src={order.giftCardImage} 
-                        alt="Gift Card" 
-                        width={320}
-                        height={180}
-                        unoptimized
-                        className="max-w-xs rounded-lg border border-white/10 shadow-sm"
-                      />
-                    </div>
-                  )}
-                  <div className="break-all space-y-1 font-mono text-sm text-[#d7dbd4]">
-                    <p><strong>Code:</strong> {order.giftCardCode?.split(' | ')[0] || 'N/A'}</p>
-                    <p><strong>PIN:</strong> {order.giftCardCode?.split(' | ')[1] || 'N/A'}</p>
-                  </div> {/* 2. FIXED: Removed the word "recent" from the closing tag */}
-                  </>}
-                </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  {order.type === "SELL_GIFTCARD" && <Link href={`/trade/${order.id}`} className="flex-1 rounded-lg border border-[#d6c7ff]/50 px-4 py-2 text-center font-semibold text-[#e5dcff] transition hover:bg-[#d6c7ff]/10">Open escrow chat</Link>}
-                  <button
-                    onClick={() => handleAction(order.id, "APPROVE")}
-                    disabled={actionLoading === order.id}
-                    className="flex-1 rounded-lg bg-[#c6f65c] py-2 font-semibold text-[#161818] transition hover:bg-[#d9ff86] disabled:opacity-50"
-                  >
-                    {actionLoading === order.id ? "Processing..." : order.type === "SELL_CRYPTO" ? "✅ Approve withdrawal" : "✅ Approve & Pay"}
-                  </button>
-                  <button
-                    onClick={() => handleAction(order.id, "REJECT")}
-                    disabled={actionLoading === order.id}
-                    className="flex-1 bg-red-600 text-white font-semibold py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
-                  >
-                    {actionLoading === order.id ? "Processing..." : "❌ Reject"}
-                  </button>
-                </div>
+        {activePanel === "verification" && <section aria-labelledby="verification-heading">
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold tracking-wide text-[#f5c76a]">TRADE & TRANSACTION MANAGEMENT</p><h2 id="verification-heading" className="mt-1 text-2xl font-bold">Split-screen verification desk</h2><p className="mt-1 text-sm text-[#a9afa9]">Inspect the submitted evidence, resolve the trade once, and leave a clear reason whenever it fails.</p></div><span className="rounded-full bg-[#f5c76a]/15 px-3 py-1.5 text-xs font-bold text-[#f5c76a]">{orders.length} awaiting review</span></div>
+          {orders.length === 0 || !selectedOrder ? <div className="rounded-3xl border border-[#c6f65c]/20 bg-[#202323] p-10 text-center"><p className="text-lg font-bold">Verification queue is clear</p><p className="mt-2 text-sm text-[#a9afa9]">New gift-card and crypto trades will appear here automatically.</p></div> : <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <aside className="overflow-hidden rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] xl:max-h-[780px] xl:overflow-y-auto"><div className="border-b border-[#f4f3ee]/10 px-4 py-4"><p className="text-xs font-bold tracking-wide text-[#a9afa9]">REVIEW QUEUE</p></div><div className="p-2">{orders.map((order) => <button key={order.id} type="button" onClick={() => setSelectedOrderId(order.id)} className={`mb-1 w-full rounded-2xl p-3 text-left transition ${selectedOrder.id === order.id ? "bg-[#c6f65c] text-[#151817]" : "text-[#d7dbd4] hover:bg-[#2a302d]"}`}><div className="flex items-start justify-between gap-2"><p className="min-w-0 truncate text-sm font-bold">{order.type === "SELL_GIFTCARD" ? order.giftCardBrand ?? "Gift card" : `${order.cryptoAsset ?? "Crypto"} withdrawal`}</p><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedOrder.id === order.id ? "bg-[#151817]/10" : "bg-[#f5c76a]/15 text-[#f5c76a]"}`}>{order.type === "SELL_GIFTCARD" ? "CARD" : "CRYPTO"}</span></div><p className={`mt-1 truncate text-xs ${selectedOrder.id === order.id ? "text-[#26321e]" : "text-[#a9afa9]"}`}>{order.user.email}</p><p className={`mt-2 text-xs font-semibold ${selectedOrder.id === order.id ? "text-[#26321e]" : "text-[#d8ff96]"}`}>{formatNaira(order.totalValue)}</p></button>)}</div></aside>
+            <div className="min-w-0 space-y-5">
+              <div className="rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-5 sm:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-[#f5c76a]/15 px-2.5 py-1 text-xs font-bold text-[#f5c76a]">PENDING REVIEW</span><span className="font-mono text-xs font-semibold text-[#d8ff96]">{selectedOrder.referenceId ?? `FEX-${selectedOrder.id.toUpperCase()}`}</span></div><h3 className="mt-3 text-xl font-bold">{selectedOrder.type === "SELL_GIFTCARD" ? `${selectedOrder.giftCardBrand} · $${selectedOrder.amount.toLocaleString()}` : `${selectedOrder.cryptoAsset ?? "Crypto"} withdrawal`}</h3><p className="mt-1 break-all text-sm text-[#a9afa9]">Customer: {selectedOrder.user.email} · Submitted {new Date(selectedOrder.createdAt).toLocaleString()}</p></div><div className="rounded-2xl bg-[#c6f65c]/10 px-4 py-3 sm:text-right"><p className="text-xs font-semibold text-[#a9afa9]">EXPECTED PAYOUT</p><p className="mt-1 text-xl font-bold text-[#d8ff96]">{formatNaira(selectedOrder.totalValue)}</p></div></div></div>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <article className="rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-5"><p className="text-xs font-bold tracking-wide text-[#c6f65c]">{selectedOrder.type === "SELL_GIFTCARD" ? "EVIDENCE & CARD DETAILS" : "WITHDRAWAL DETAILS"}</p>{selectedOrder.type === "SELL_GIFTCARD" ? <><div className="mt-4 flex min-h-52 items-center justify-center overflow-hidden rounded-2xl border border-[#f4f3ee]/10 bg-[#141717]">{selectedOrder.giftCardImage ? <Image src={selectedOrder.giftCardImage} alt={`${selectedOrder.giftCardBrand ?? "Gift card"} evidence`} width={640} height={420} unoptimized className="max-h-80 w-full object-contain" /> : <p className="px-4 text-center text-sm text-[#a9afa9]">No card image was uploaded with this trade.</p>}</div><div className="mt-4 grid gap-3 rounded-2xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-4 font-mono text-sm"><p className="break-all"><span className="font-sans text-xs font-semibold text-[#a9afa9]">CARD CODE</span><br />{selectedOrder.giftCardCode?.split(" | ")[0] || "Not provided"}</p><p className="break-all"><span className="font-sans text-xs font-semibold text-[#a9afa9]">CARD PIN</span><br />{selectedOrder.giftCardCode?.split(" | ")[1] || "Not provided"}</p><p className="font-sans text-xs text-[#a9afa9]">{selectedOrder.giftCardSubcategory ?? selectedOrder.giftCardCountry ?? "No sub-category selected"}</p></div></> : <div className="mt-4 rounded-2xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-4 text-sm leading-7 text-[#d7dbd4]"><p className="text-xs font-semibold text-[#a9afa9]">DEFAULT WITHDRAWAL ACCOUNT</p><p><strong>Bank:</strong> {selectedOrder.payoutBankName ?? "Not saved"}</p><p><strong>Account name:</strong> {selectedOrder.payoutAccountName ?? "Not saved"}</p><p><strong>Account number:</strong> {selectedOrder.payoutBankAccountNumber ?? "Not saved"}</p></div>}</article>
+                <article className="rounded-3xl border border-[#f5c76a]/25 bg-[#202323] p-5"><p className="text-xs font-bold tracking-wide text-[#f5c76a]">RESOLUTION CONTROL</p><h4 className="mt-2 text-lg font-bold">Record the final outcome</h4><p className="mt-1 text-sm leading-6 text-[#a9afa9]">A successful card trade closes cleanly. A failed trade requires a reason the customer can see in their receipt and trade room.</p><label htmlFor={`failure-${selectedOrder.id}`} className="mt-5 mb-1 block text-xs font-semibold text-[#a9afa9]">Failure description <span className="text-red-300">(required to mark failed)</span></label><textarea id={`failure-${selectedOrder.id}`} value={failureDescriptions[selectedOrder.id] ?? ""} onChange={(event) => setFailureDescriptions((current) => ({ ...current, [selectedOrder.id]: event.target.value }))} maxLength={800} rows={5} placeholder="Explain clearly what went wrong with this trade." className="w-full resize-y rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-3 py-2 text-sm text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-red-300" /><div className="mt-4 grid gap-3"><p className="rounded-xl border border-[#d6c7ff]/25 bg-[#d6c7ff]/5 px-4 py-3 text-sm leading-6 text-[#d7dbd4]">Customer trade rooms and receipts are customer-only. Review the submitted evidence and record the outcome here.</p><button onClick={() => handleAction(selectedOrder.id, selectedOrder.type === "SELL_GIFTCARD" ? "SUCCESS" : "APPROVE")} disabled={actionLoading === selectedOrder.id} className="rounded-xl bg-[#c6f65c] py-3 text-sm font-bold text-[#151817] transition hover:bg-[#d9ff86] disabled:opacity-50">{actionLoading === selectedOrder.id ? "Processing..." : selectedOrder.type === "SELL_GIFTCARD" ? "Mark trade successful" : "Approve withdrawal"}</button><button onClick={() => handleAction(selectedOrder.id, selectedOrder.type === "SELL_GIFTCARD" ? "FAIL" : "REJECT")} disabled={actionLoading === selectedOrder.id || !(failureDescriptions[selectedOrder.id] ?? "").trim()} className="rounded-xl bg-red-600 py-3 text-sm font-bold text-white transition hover:bg-red-700 disabled:opacity-50">{actionLoading === selectedOrder.id ? "Processing..." : selectedOrder.type === "SELL_GIFTCARD" ? "Mark trade failed" : "Reject withdrawal"}</button></div></article>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          </div>}
+        </section>}
       </div>
     </main>
   );

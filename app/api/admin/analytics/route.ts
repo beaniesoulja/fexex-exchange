@@ -14,6 +14,8 @@ export async function GET() {
 
   try {
     const onlineSince = new Date(Date.now() - ONLINE_WINDOW_MINUTES * 60 * 1000);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
     const [
       totalUsers,
       onlineUsers,
@@ -25,6 +27,9 @@ export async function GET() {
       recentActivities,
       recentProfileAudits,
       userTradeTotals,
+      todayTrades,
+      pendingGiftCardTrades,
+      pendingCryptoTrades,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { lastActiveAt: { gte: onlineSince } } }),
@@ -35,6 +40,7 @@ export async function GET() {
       prisma.user.findMany({
         select: { id: true, email: true, role: true, createdAt: true, lastLoginAt: true, lastActiveAt: true },
         orderBy: [{ lastActiveAt: "desc" }, { createdAt: "desc" }],
+        take: 100,
       }),
       prisma.userActivity.findMany({
         take: 100,
@@ -50,7 +56,16 @@ export async function GET() {
         by: ["userId"],
         _count: { _all: true },
         _sum: { totalValue: true },
+        orderBy: { _sum: { totalValue: "desc" } },
+        take: 100,
       }),
+      prisma.order.aggregate({
+        where: { createdAt: { gte: startOfToday } },
+        _count: { _all: true },
+        _sum: { totalValue: true },
+      }),
+      prisma.order.count({ where: { status: "PENDING", type: "SELL_GIFTCARD" } }),
+      prisma.order.count({ where: { status: "PENDING", type: "SELL_CRYPTO" } }),
     ]);
 
     const totalsByUserId = new Map(userTradeTotals.map((total) => [total.userId, total]));
@@ -75,7 +90,18 @@ export async function GET() {
     return NextResponse.json({
       generatedAt: new Date(),
       onlineWindowMinutes: ONLINE_WINDOW_MINUTES,
-      stats: { totalUsers, onlineUsers, totalTrades, pendingTrades, successfulTrades, declinedTrades },
+      stats: {
+        totalUsers,
+        onlineUsers,
+        totalTrades,
+        pendingTrades,
+        successfulTrades,
+        declinedTrades,
+        todayTrades: todayTrades._count._all,
+        todayVolume: todayTrades._sum.totalValue ?? 0,
+        pendingGiftCardTrades,
+        pendingCryptoTrades,
+      },
       users: usersWithStats,
       topUsers,
       recentActivities: activityFeed,

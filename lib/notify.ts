@@ -1,5 +1,6 @@
 type AdminNotification = {
   userEmail: string;
+  referenceId: string | null;
   brand: string;
   country: string;
   amount: number;
@@ -8,6 +9,7 @@ type AdminNotification = {
 
 export async function notifyAdmin({
   userEmail,
+  referenceId,
   brand,
   country,
   amount,
@@ -23,6 +25,7 @@ export async function notifyAdmin({
 
   const text = [
     "New gift card order",
+    `Trade session ID: ${referenceId ?? "Pending"}`,
     `Customer: ${userEmail}`,
     `Card: ${brand} (${country})`,
     `Card value: ${formatNaira(amount)}`,

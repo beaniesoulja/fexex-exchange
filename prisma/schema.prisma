@@ -42,6 +42,11 @@ enum UserActivityType {
   CRYPTO_SWAPPED
 }
 
+enum MailingListStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
 model User {
   id                  String   @id @default(cuid())
   email               String   @unique
@@ -76,8 +81,24 @@ model User {
   loginSessions LoginSession[]
   profileAudits ProfileAudit[]
   passwordResetTokens PasswordResetToken[]
+  mailingListSubscriber MailingListSubscriber?
 
   @@unique([phoneCountryCode, phoneNumber])
+}
+
+model MailingListSubscriber {
+  id             String            @id @default(cuid())
+  email          String            @unique
+  userId         String?           @unique
+  status         MailingListStatus @default(SUBSCRIBED)
+  source         String            @default("signup")
+  consentedAt    DateTime          @default(now())
+  unsubscribedAt DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  user           User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, consentedAt])
 }
 
 model ProfileAudit {
@@ -125,6 +146,9 @@ model Wallet {
 
 model Order {
   id     String @id @default(cuid())
+  // Every new value is derived from the already-unique order id (FEX-<order id>).
+  // Keeping this nullable avoids forcing a risky constraint over legacy orders.
+  referenceId String?
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
@@ -144,6 +168,8 @@ model Order {
   payoutBankName  String?
   payoutAccountName String?
   payoutBankAccountNumber String?
+  resultDescription String?
+  resolvedAt DateTime?
 
   payout Payout?
   tradeMessages TradeMessage[]
@@ -157,6 +183,7 @@ model TradeMessage {
   orderId   String
   senderId  String
   body      String
+  imageData String?
   createdAt DateTime @default(now())
 
   order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)

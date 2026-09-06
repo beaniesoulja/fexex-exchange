@@ -129,7 +129,7 @@ export default function SignupPage() {
     <main className="fexex-surface min-h-screen bg-[#161818] px-4 py-10 text-[#f4f3ee] sm:py-16">
       <div className="mx-auto w-full max-w-md rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-7 shadow-2xl shadow-black/40 sm:p-9">
         <Link href="/" aria-label="Fexex home">
-          <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" />
+          <Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-8 w-auto" style={{ width: "auto" }} />
         </Link>
         {createdAccount ? (
           <section className="mt-8" aria-labelledby="account-created-heading">

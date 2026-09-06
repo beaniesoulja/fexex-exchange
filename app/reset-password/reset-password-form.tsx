@@ -35,7 +35,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   return (
     <main className="fexex-surface flex min-h-screen items-center justify-center bg-[#161818] p-4 text-[#f4f3ee]">
       <div className="w-full max-w-md rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-8 shadow-2xl shadow-black/40">
-        <Link href="/" aria-label="FEXEX home"><Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-9 w-auto" /></Link>
+        <Link href="/" aria-label="FEXEX home"><Image src="/fexex-lockup-reverse.svg" alt="FEXEX" width={116} height={32} className="h-9 w-auto" style={{ width: "auto" }} /></Link>
         <h1 className="mt-8 text-3xl font-semibold">Choose a new password</h1>
         <p className="mt-2 text-sm leading-6 text-[#a9afa9]">Use at least eight characters and keep it unique to FEXEX.</p>
         <form onSubmit={submit} className="mt-7 space-y-5">
