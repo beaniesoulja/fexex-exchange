@@ -11,6 +11,8 @@ import { AppHeader } from "@/components/app-header";
 import { formatNaira } from "@/lib/currency";
 import { stashReceiptPreview } from "@/lib/receipt-cache";
 
+const MAX_GIFTCARD_AMOUNT_USD = 5_000;
+
 interface GiftCardOption {
   name: string;
   code: string;
@@ -94,6 +96,10 @@ export default function GiftCardTradePage() {
       setMessage("This gift card is currently paused. Please choose another active card.");
       return;
     }
+    if (numericAmount > MAX_GIFTCARD_AMOUNT_USD) {
+      setMessage(`A single gift card trade cannot exceed $${MAX_GIFTCARD_AMOUNT_USD.toLocaleString()}. Please submit a smaller amount or split it across multiple trades.`);
+      return;
+    }
     setSubmitting(true);
     setMessage("");
     const formData = new FormData(event.currentTarget);
@@ -164,7 +170,8 @@ export default function GiftCardTradePage() {
               {giftCard.subcategories.length > 0 && <div><label htmlFor="subcategory" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Country and card type</label><select id="subcategory" required value={selectedSubcategory?.label ?? ""} onChange={(event) => setSelectedSubcategoryLabel(event.target.value)} className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20">{giftCard.subcategories.map((subcategory) => <option key={subcategory.label} value={subcategory.label}>{subcategory.label}</option>)}</select><p className="mt-2 text-xs text-[#a9afa9]">Rate: {formatNaira(selectedSubcategory?.nairaPayoutPerUsd ?? 0)} per $1</p></div>}
               <div>
                 <label htmlFor="amount" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Card value (USD)</label>
-                <input id="amount" name="amount" type="number" inputMode="decimal" min="0.01" step="0.01" required value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="e.g. 100" className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" />
+                <input id="amount" name="amount" type="number" inputMode="decimal" min="0.01" max={MAX_GIFTCARD_AMOUNT_USD} step="0.01" required value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="e.g. 100" className="w-full rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-4 py-3 text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-[#c6f65c] focus:ring-2 focus:ring-[#c6f65c]/20" />
+                <p className="mt-2 text-xs leading-5 text-[#777a75]">Maximum {`$${MAX_GIFTCARD_AMOUNT_USD.toLocaleString()}`} per trade. Have more than one card? Submit them as separate trades.</p>
               </div>
               <div className="rounded-2xl border border-[#c6f65c]/25 bg-[#c6f65c]/10 p-4"><p className="text-xs font-semibold tracking-wide text-[#d8ff96]">✦ LIVE PAYOUT ESTIMATE</p>{giftCard.available ? <><p className="mt-2 text-sm text-[#d7dbd4]">{selectedSubcategory ? `${selectedSubcategory.label} pays ${formatNaira(effectiveRate)} for every $1 of card value.` : `${giftCard.name} pays ${formatNaira(effectiveRate)} for every $1 of card value.`}</p><p className={`mt-2 text-2xl font-bold text-[#f4f3ee] transition ${estimatedPayout !== null ? "scale-105" : ""}`}>{estimatedPayout === null ? "Enter a card value" : formatNaira(estimatedPayout)}</p></> : <p className="mt-2 text-sm text-[#d7dbd4]">This card is currently paused. You can return to choose another card.</p>}</div>
               <div><label htmlFor="image" className="mb-2 block text-sm font-medium text-[#d7dbd4]">Card image <span className="text-[#777a75]">(optional, max 2MB)</span></label><input id="image" type="file" accept="image/*" onChange={changeImage} className="w-full rounded-xl border border-dashed border-[#f4f3ee]/20 bg-[#1a1d1d] p-3 text-sm text-[#a9afa9] file:mr-4 file:rounded-lg file:border-0 file:bg-[#c6f65c] file:px-3 file:py-2 file:font-semibold file:text-[#161818] hover:file:bg-[#d9ff86]" />{imagePreview && <Image src={imagePreview} alt="Gift card preview" width={512} height={220} unoptimized className="mt-3 h-44 w-full rounded-xl border border-white/10 object-cover" />}</div>

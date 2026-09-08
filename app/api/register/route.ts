@@ -24,7 +24,7 @@ function duplicateFieldResponse(field: "username" | "phoneNumber" | "email") {
 }
 
 export async function POST(request: Request) {
-  let body: { username?: unknown; legalName?: unknown; dateOfBirth?: unknown; phoneCountryCode?: unknown; phoneNumber?: unknown; email?: unknown; password?: unknown };
+  let body: { username?: unknown; legalName?: unknown; dateOfBirth?: unknown; phoneCountryCode?: unknown; phoneNumber?: unknown; email?: unknown; password?: unknown; agreedToTerms?: unknown };
 
   try {
     body = await request.json();
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
   const phoneCountryCode = typeof body.phoneCountryCode === "string" ? `+${body.phoneCountryCode.replace(/\D/g, "").slice(0, 3)}` : "";
   const phoneNumber = typeof body.phoneNumber === "string" ? body.phoneNumber.replace(/\D/g, "") : "";
   const password = typeof body.password === "string" ? body.password : "";
+  const agreedToTerms = body.agreedToTerms === true;
 
   if (!/^[a-z0-9_]{3,24}$/.test(username)) {
     return NextResponse.json({ error: "Choose a username with 3–24 letters, numbers, or underscores." }, { status: 400 });
@@ -71,6 +72,10 @@ export async function POST(request: Request) {
 
   if (password.length < 8 || password.length > 128) {
     return NextResponse.json({ error: "Your password must be 8 to 128 characters." }, { status: 400 });
+  }
+
+  if (!agreedToTerms) {
+    return NextResponse.json({ error: "You must agree to the Terms of Use and Privacy Policy to create an account." }, { status: 400 });
   }
 
   try {
@@ -108,6 +113,7 @@ export async function POST(request: Request) {
         phoneCountryCode,
         phoneNumber,
         passwordHash,
+        termsAcceptedAt: new Date(),
         wallet: { create: {} },
         mailingListSubscriber: {
           create: { email, source: "signup" },

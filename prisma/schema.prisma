@@ -80,6 +80,7 @@ model User {
   createdAt           DateTime @default(now())
   lastLoginAt         DateTime?
   lastActiveAt        DateTime?
+  termsAcceptedAt     DateTime?
 
   wallet     Wallet?
   orders     Order[]

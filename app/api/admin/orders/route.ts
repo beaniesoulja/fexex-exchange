@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getUsdToNairaRate } from '@/lib/pricing';
 import { canVerifyTrades } from '@/lib/admin-access';
+import { formatNaira, formatUsd } from '@/lib/currency';
 
 export async function GET() {
   try {
@@ -62,11 +63,32 @@ export async function PATCH(req: Request) {
       }
 
       const isSuccessful = action === "SUCCESS";
+
+      // An admin can approve less than the full submitted card value (e.g. some
+      // cards in a batch were invalid). The payout recalculates from the same rate.
+      let approvedAmount = order.amount;
+      let approvedTotalValue = order.totalValue;
+      let isPartial = false;
+      if (isSuccessful && typeof body.approvedAmount !== "undefined") {
+        const parsedAmount = Number(body.approvedAmount);
+        if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > order.amount) {
+          return NextResponse.json({ error: `Enter an approved value between $0.01 and $${order.amount.toLocaleString()}.` }, { status: 400 });
+        }
+        approvedAmount = Math.round(parsedAmount * 100) / 100;
+        approvedTotalValue = Math.round(approvedAmount * order.rate);
+        isPartial = approvedAmount < order.amount;
+      }
+
+      if ((action === "FAIL" || isPartial) && (!resultDescription || resultDescription.length > 800)) {
+        return NextResponse.json({ error: isPartial ? "Add a note explaining the adjusted payout (e.g. which card was invalid)." : "Add a clear failure description (up to 800 characters)." }, { status: 400 });
+      }
+
       const result = await prisma.order.updateMany({
         where: { id: orderId, status: "PENDING" },
         data: {
           status: isSuccessful ? "COMPLETED" : "REJECTED",
-          resultDescription: isSuccessful ? null : resultDescription,
+          ...(isSuccessful ? { amount: approvedAmount, totalValue: approvedTotalValue } : {}),
+          resultDescription: isSuccessful ? (isPartial ? resultDescription : null) : resultDescription,
           resolvedAt: new Date(),
         },
       });
@@ -77,11 +99,17 @@ export async function PATCH(req: Request) {
           orderId,
           senderId: session.user.id,
           body: isSuccessful
-            ? "Admin result: Your gift-card trade was successful. No further action is needed."
+            ? (isPartial
+              ? `Admin result: Your gift-card trade was partially successful. Approved value: ${formatUsd(approvedAmount)} of the ${formatUsd(order.amount)} submitted. Payout: ${formatNaira(approvedTotalValue)}. Reason: ${resultDescription}`
+              : "Admin result: Your gift-card trade was successful. No further action is needed.")
             : `Admin result: Your gift-card trade failed. Reason: ${resultDescription}`,
         },
       });
-      return NextResponse.json({ message: isSuccessful ? "Gift-card trade marked successful." : "Gift-card trade marked failed with the supplied reason." }, { status: 200 });
+      return NextResponse.json({
+        message: isSuccessful
+          ? (isPartial ? "Gift-card trade marked successful with an adjusted payout." : "Gift-card trade marked successful.")
+          : "Gift-card trade marked failed with the supplied reason.",
+      }, { status: 200 });
     }
 
     if (action === 'APPROVE') {

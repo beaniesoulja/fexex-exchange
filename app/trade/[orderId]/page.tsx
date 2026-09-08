@@ -198,7 +198,7 @@ export default function TradeRoomPage() {
             </div>
           </div>
 
-          {trade?.status === "COMPLETED" && <p className="m-5 rounded-2xl border border-[#c6f65c]/30 bg-[#c6f65c]/10 px-4 py-3 text-sm font-semibold text-[#d8ff96]">Successful trade. No further action is needed.</p>}
+          {trade?.status === "COMPLETED" && (trade.resultDescription ? <div className="m-5 rounded-2xl border border-[#f5c76a]/30 bg-[#f5c76a]/10 px-4 py-3 text-sm text-[#f5c76a]"><p className="font-bold">Trade successful — payout adjusted</p><p className="mt-1 text-[#d7dbd4]">{trade.resultDescription}</p></div> : <p className="m-5 rounded-2xl border border-[#c6f65c]/30 bg-[#c6f65c]/10 px-4 py-3 text-sm font-semibold text-[#d8ff96]">Successful trade. No further action is needed.</p>)}
           {trade?.status === "REJECTED" && <div className="m-5 rounded-2xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-100"><p className="font-bold">Trade failed</p><p className="mt-1">{trade.resultDescription ?? "Please contact support with your Trade Session ID."}</p></div>}
 
           <div className="px-5 pb-5 sm:px-7 sm:pb-7">

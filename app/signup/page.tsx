@@ -22,6 +22,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [createdAccount, setCreatedAccount] = useState<{ email: string; password: string } | null>(null);
@@ -109,13 +110,18 @@ export default function SignupPage() {
       return;
     }
 
+    if (!agreedToTerms) {
+      setError("You must agree to the Terms of Use and Privacy Policy to create an account.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, legalName, dateOfBirth, phoneCountryCode, phoneNumber, email, password }),
+        body: JSON.stringify({ username, legalName, dateOfBirth, phoneCountryCode, phoneNumber, email, password, agreedToTerms }),
       });
       const data = await response.json();
 
@@ -216,9 +222,14 @@ export default function SignupPage() {
             </div>
           </div>
 
+          <label className="flex items-start gap-2.5 text-sm leading-6 text-[#c8ccc7]">
+            <input type="checkbox" checked={agreedToTerms} onChange={(event) => setAgreedToTerms(event.target.checked)} required className="mt-1 h-4 w-4 shrink-0 rounded border-[#f4f3ee]/30 bg-[#1a1d1d] accent-[#c6f65c]" />
+            <span>I agree to the FEXEX <Link href="/terms" target="_blank" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Terms of Use</Link> and <Link href="/privacy" target="_blank" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Privacy Policy</Link>.</span>
+          </label>
+
           {error && <p role="alert" className="rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
 
-          <button type="submit" disabled={loading} className="w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100 disabled:opacity-60">
+          <button type="submit" disabled={loading || !agreedToTerms} className="w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100 disabled:opacity-60">
             {loading ? "Creating account..." : "Create account →"}
           </button>
           </form>

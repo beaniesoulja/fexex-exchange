@@ -6,6 +6,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ensurePricingDefaults } from '@/lib/pricing';
 
+const MAX_GIFTCARD_AMOUNT_USD = 5_000;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -59,6 +61,9 @@ export async function POST(req: Request) {
     const numericAmount = Math.round(Number(amount) * 100) / 100;
     if (!Number.isFinite(numericAmount) || numericAmount < 0.01) {
       return NextResponse.json({ error: "Enter a valid gift card value in USD." }, { status: 400 });
+    }
+    if (numericAmount > MAX_GIFTCARD_AMOUNT_USD) {
+      return NextResponse.json({ error: `A single gift card trade cannot exceed $${MAX_GIFTCARD_AMOUNT_USD.toLocaleString()}. Please submit a smaller amount or split it across multiple trades.` }, { status: 400 });
     }
     const rate = nairaPayoutPerUsd;
     const totalValue = Math.round(numericAmount * rate);
