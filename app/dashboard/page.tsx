@@ -365,23 +365,23 @@ function DashboardContent() {
             </Link>
           </div>
           
-          <div id="crypto-balance" className="fexex-pop-in relative scroll-mt-4 overflow-hidden rounded-2xl border border-[#d6c7ff]/25 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30" style={{ animationDelay: "80ms" }}>
+          <div id="crypto-balance" className="fexex-pop-in relative scroll-mt-4 overflow-hidden rounded-2xl border border-[#bfe3ff]/25 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30" style={{ animationDelay: "80ms" }}>
             <span aria-hidden="true" className="pointer-events-none absolute -right-4 -top-6 text-7xl opacity-10">◈</span>
-            <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#d6c7ff]" />
+            <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#bfe3ff]" />
             <div className="relative mb-1 flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-[#a9afa9]">Crypto holdings (USDT)</p>
               <button type="button" onClick={() => setIsCryptoBalanceVisible((visible) => !visible)} aria-pressed={isCryptoBalanceVisible} className="rounded-lg bg-[#f4f3ee]/10 px-2.5 py-1 text-xs font-bold text-[#d7dbd4] transition hover:bg-[#f4f3ee]/15">{isCryptoBalanceVisible ? "Hide" : "Show"}</button>
             </div>
             <h2 className="relative text-4xl font-bold">{wallet ? isCryptoBalanceVisible ? wallet.cryptoBalance.toFixed(4) : "••••••" : "—"} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
-            {wallet && isCryptoBalanceVisible && swapRate !== null && <p className="mt-1 text-sm text-[#d6c7ff]">≈ {preferredCurrency === "USD" ? formatUsd(wallet.cryptoBalance) : formatNaira(wallet.cryptoBalance * swapRate)}</p>}
+            {wallet && isCryptoBalanceVisible && swapRate !== null && <p className="mt-1 text-sm text-[#bfe3ff]">≈ {preferredCurrency === "USD" ? formatUsd(wallet.cryptoBalance) : formatNaira(wallet.cryptoBalance * swapRate)}</p>}
             <p className="mt-3 text-sm leading-6 text-[#c8ccc7]">Crypto is held separately. Swap USDT to Naira first, then request a Naira payout.</p>
             {!quoteLoaded ? (
               <p role="status" className="mt-4 rounded-lg border border-[#f4f3ee]/10 bg-[#f4f3ee]/5 p-3 text-sm text-[#a9afa9]">Loading today&apos;s swap rate...</p>
             ) : swapRate === null ? (
-              <p role="status" className="mt-4 rounded-lg border border-[#d6c7ff]/30 bg-[#d6c7ff]/10 p-3 text-sm text-[#e5dcff]">The current swap rate is unavailable. Please try again later.</p>
+              <p role="status" className="mt-4 rounded-lg border border-[#bfe3ff]/30 bg-[#bfe3ff]/10 p-3 text-sm text-[#dbf1ff]">The current swap rate is unavailable. Please try again later.</p>
             ) : (
               <div className="mt-4 space-y-3">
-                <p className="text-sm font-medium text-[#d6c7ff]">1 USDT = {formatNaira(swapRate)}</p>
+                <p className="text-sm font-medium text-[#bfe3ff]">1 USDT = {formatNaira(swapRate)}</p>
                 <form onSubmit={swapToNaira} className="flex flex-col gap-2 sm:flex-row">
                   <label className="sr-only" htmlFor="swap-amount">USDT amount to swap</label>
                   <input
@@ -395,9 +395,9 @@ function DashboardContent() {
                     onChange={(event) => setSwapAmount(event.target.value)}
                     placeholder={`Min. ${swapMinimum} USDT`}
                     required
-                    className="min-w-0 w-full flex-1 rounded-lg bg-[#f4f3ee] p-2 text-sm text-[#161818] outline-none placeholder:text-[#777a75] focus:ring-2 focus:ring-[#d6c7ff]"
+                    className="min-w-0 w-full flex-1 rounded-lg bg-[#f4f3ee] p-2 text-sm text-[#161818] outline-none placeholder:text-[#777a75] focus:ring-2 focus:ring-[#bfe3ff]"
                   />
-                  <button type="submit" disabled={swapSaving || !wallet || wallet.cryptoBalance < swapMinimum} className="w-full rounded-lg bg-[#d6c7ff] px-3 py-2 text-xs font-bold text-[#161818] transition hover:-translate-y-0.5 hover:bg-[#e5dcff] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+                  <button type="submit" disabled={swapSaving || !wallet || wallet.cryptoBalance < swapMinimum} className="w-full rounded-lg bg-[#bfe3ff] px-3 py-2 text-xs font-bold text-[#161818] transition hover:-translate-y-0.5 hover:bg-[#dbf1ff] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
                     {swapSaving ? "Swapping..." : "Swap to Naira ⇄"}
                   </button>
                 </form>
@@ -406,7 +406,7 @@ function DashboardContent() {
                 )}
               </div>
             )}
-            {swapMessage && <p role="status" className="mt-3 text-sm text-[#d6c7ff]">{swapMessage}</p>}
+            {swapMessage && <p role="status" className="mt-3 text-sm text-[#bfe3ff]">{swapMessage}</p>}
             {swaps?.[0] && <p className="mt-4 text-xs text-[#a9afa9]">Last swap: {swaps[0].cryptoAmount} {swaps[0].asset} → {formatNaira(swaps[0].nairaAmount)}.</p>}
           </div>
         </div>}
@@ -478,8 +478,8 @@ function DashboardContent() {
                 <span className="flex items-center justify-between text-lg font-bold text-[#f4f3ee]">Sell a gift card <span aria-hidden="true" className="text-[#c6f65c] transition group-hover:translate-x-1">→</span></span>
                 <span className="mt-1 block text-sm leading-6 text-[#c8ccc7]">Enter your USD card value and receive a Naira payout estimate.</span>
               </Link>
-              <Link href="/wallet#crypto-balance" className="group rounded-2xl border border-[#d6c7ff]/40 bg-[#d6c7ff]/10 p-5 transition hover:-translate-y-0.5 hover:border-[#d6c7ff] hover:bg-[#d6c7ff]/20">
-                <span className="flex items-center justify-between text-lg font-bold text-[#f4f3ee]">Exchange crypto to cash <span aria-hidden="true" className="text-[#d6c7ff] transition group-hover:translate-x-1">→</span></span>
+              <Link href="/wallet#crypto-balance" className="group rounded-2xl border border-[#bfe3ff]/40 bg-[#bfe3ff]/10 p-5 transition hover:-translate-y-0.5 hover:border-[#bfe3ff] hover:bg-[#bfe3ff]/20">
+                <span className="flex items-center justify-between text-lg font-bold text-[#f4f3ee]">Exchange crypto to cash <span aria-hidden="true" className="text-[#bfe3ff] transition group-hover:translate-x-1">→</span></span>
                 <span className="mt-1 block text-sm leading-6 text-[#c8ccc7]">Convert your available USDT to Naira at today&apos;s rate.</span>
               </Link>
             </div>

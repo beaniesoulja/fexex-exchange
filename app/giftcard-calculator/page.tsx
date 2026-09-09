@@ -82,7 +82,7 @@ export default function GiftcardCalculatorPage() {
           <p className="inline-flex items-center gap-2 rounded-full border border-[#c6f65c]/25 bg-[#c6f65c]/10 px-3 py-1 text-xs font-bold tracking-wide text-[#d8ff96]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#c6f65c]" /> LIVE FEXEX RATES
           </p>
-          <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-6xl">Gift card value,<br /><span className="fexex-serif text-[#d6c7ff]">made clear in Naira.</span></h1>
+          <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-6xl">Gift card value,<br /><span className="fexex-serif text-[#bfe3ff]">made clear in Naira.</span></h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#a9afa9] sm:text-lg">Choose the card you hold, enter its value, and get an instant Naira payout estimate from today&apos;s FEXEX buying rates.</p>
         </div>
 
@@ -145,7 +145,7 @@ export default function GiftcardCalculatorPage() {
           </section>
 
           <aside className="rounded-[2rem] border border-[#f4f3ee]/10 bg-[#1a1d1d] p-5 sm:p-7">
-            <p className="text-xs font-bold tracking-[0.18em] text-[#d6c7ff]">TODAY&apos;S MARKET</p>
+            <p className="text-xs font-bold tracking-[0.18em] text-[#bfe3ff]">TODAY&apos;S MARKET</p>
             <h2 className="mt-2 text-2xl font-semibold">Cards we&apos;re buying</h2>
             <p className="mt-2 text-sm leading-6 text-[#a9afa9]">Only active categories set in the FEXEX admin dashboard appear here.</p>
 
@@ -156,7 +156,7 @@ export default function GiftcardCalculatorPage() {
                 [...activeCards].sort((a, b) => b.nairaPayoutPerUsd - a.nairaPayoutPerUsd).map((card) => (
                   <button key={card.code} type="button" onClick={() => setSelectedName(card.name)} className="flex w-full items-center justify-between rounded-xl border border-transparent bg-[#202323] p-3 text-left transition hover:border-[#c6f65c]/45 hover:bg-[#202323]/80">
                     <span className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#d6c7ff]/15 text-[10px] font-extrabold tracking-wide text-[#e5dcff]">{card.code}</span>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#bfe3ff]/15 text-[10px] font-extrabold tracking-wide text-[#dbf1ff]">{card.code}</span>
                       <span className="text-sm font-semibold">{card.name}</span>
                     </span>
                     <span className="text-right text-xs font-bold text-[#d8ff96]">{formatNaira(card.nairaPayoutPerUsd)}<span className="block pt-0.5 text-[10px] font-medium text-[#777a75]">per $1</span></span>

@@ -52,11 +52,11 @@ export default function Home() {
         <div className="relative">
           <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-one opacity-60" />
           <p className="relative mb-6 inline-flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.22em] text-[#a9afa9]"><span className="h-px w-6 bg-[#c6f65c]" />Value, but make it move</p>
-          <h1 className="relative max-w-2xl text-5xl font-semibold leading-[1.02] tracking-[-0.06em] sm:text-6xl md:text-[4.75rem]">Your value has a <span className="fexex-serif text-[#d6c7ff]">next life.</span></h1>
+          <h1 className="relative max-w-2xl text-5xl font-semibold leading-[1.02] tracking-[-0.06em] sm:text-6xl md:text-[4.75rem]">Your value has a <span className="fexex-serif text-[#bfe3ff]">next life.</span></h1>
           <p className="relative mt-7 max-w-lg text-base leading-7 text-[#c8ccc7] sm:text-lg sm:leading-8">Sell supported gift cards and crypto through a trade flow that feels clear from the first click to your next move.</p>
           <div className="relative mt-9 flex flex-wrap gap-3">
             <Link href="/signup" className="rounded-full bg-[#c6f65c] px-6 py-3.5 text-sm font-bold text-[#161818] transition hover:bg-[#d9ff86]">Start a trade <span aria-hidden="true">→</span></Link>
-            <Link href="/giftcard-calculator" className="rounded-full border border-white/15 px-6 py-3.5 text-sm font-semibold text-[#f4f3ee] transition hover:border-[#d6c7ff]/60 hover:text-[#d6c7ff]">Check Naira rates</Link>
+            <Link href="/giftcard-calculator" className="rounded-full border border-white/15 px-6 py-3.5 text-sm font-semibold text-[#f4f3ee] transition hover:border-[#bfe3ff]/60 hover:text-[#bfe3ff]">Check Naira rates</Link>
           </div>
           <dl className="relative mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-6">
             {stats.slice(0, 3).map((stat) => (
@@ -75,7 +75,7 @@ export default function Home() {
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 text-xs text-[#777a75]"><span className="inline-flex items-center gap-2 font-semibold tracking-wide text-[#a9afa9]"><span className="h-1.5 w-1.5 rounded-full bg-[#c6f65c]" /> FEXEX TRADE DESK</span><span>Live experience</span></div>
             <div className="grid gap-px bg-white/10 sm:grid-cols-2">
               <Link href="/trade" className="group bg-[#1c1f1f] p-6 transition hover:bg-[#212525]"><div className="flex items-start justify-between"><span className="text-[10px] font-extrabold tracking-[0.16em] text-[#d8ff96]">GIFTCARDS</span><span className="text-lg text-[#c6f65c] transition group-hover:translate-x-1">↗</span></div><p className="mt-14 text-2xl font-bold leading-[1.1] tracking-[-0.04em]">Turn cards into Naira.</p><p className="mt-3 text-xs leading-5 text-[#a9afa9]">Choose a card, a sub-category, and its value.</p></Link>
-              <Link href="/trade?type=crypto" className="group bg-[#1c1f1f] p-6 transition hover:bg-[#212525]"><div className="flex items-start justify-between"><span className="text-[10px] font-extrabold tracking-[0.16em] text-[#e5dcff]">CRYPTO</span><span className="text-lg text-[#d6c7ff] transition group-hover:translate-x-1">↗</span></div><p className="mt-14 text-2xl font-bold leading-[1.1] tracking-[-0.04em]">Make a clean crypto move.</p><p className="mt-3 text-xs leading-5 text-[#a9afa9]">Select your asset and submit the amount to sell.</p></Link>
+              <Link href="/trade?type=crypto" className="group bg-[#1c1f1f] p-6 transition hover:bg-[#212525]"><div className="flex items-start justify-between"><span className="text-[10px] font-extrabold tracking-[0.16em] text-[#dbf1ff]">CRYPTO</span><span className="text-lg text-[#bfe3ff] transition group-hover:translate-x-1">↗</span></div><p className="mt-14 text-2xl font-bold leading-[1.1] tracking-[-0.04em]">Make a clean crypto move.</p><p className="mt-3 text-xs leading-5 text-[#a9afa9]">Select your asset and submit the amount to sell.</p></Link>
             </div>
             <div className="flex items-center justify-between gap-2 border-t border-white/10 px-5 py-4 text-xs font-semibold text-[#777a75]">
               {["Pick", "Enter", "Track"].map((label, index) => (
@@ -129,7 +129,7 @@ export default function Home() {
       <section id="supported-cards" className="relative z-10 border-y border-white/10 bg-[#141616] py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div><p className="text-xs font-extrabold tracking-[0.14em] text-[#d6c7ff]">PICK YOUR VALUE</p><h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">The cards in your drawer have somewhere to go.</h2></div>
+            <div><p className="text-xs font-extrabold tracking-[0.14em] text-[#bfe3ff]">PICK YOUR VALUE</p><h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">The cards in your drawer have somewhere to go.</h2></div>
             <Link href="/trade" className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-bold transition hover:border-[#c6f65c] hover:text-[#c6f65c]">Browse the trade desk <span className="text-[#c6f65c]">→</span></Link>
           </div>
           <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-3 lg:grid-cols-5">
@@ -145,11 +145,11 @@ export default function Home() {
 
       <section className="relative z-10 mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div className="rounded-3xl border border-white/10 bg-[#1a1d1d] p-7 sm:p-9">
-          <span aria-hidden="true" className="block h-1 w-10 rounded-full bg-[#d6c7ff]" />
-          <p className="mt-6 text-xs font-extrabold tracking-[0.14em] text-[#d6c7ff]">NO GUESSWORK NEEDED</p>
+          <span aria-hidden="true" className="block h-1 w-10 rounded-full bg-[#bfe3ff]" />
+          <p className="mt-6 text-xs font-extrabold tracking-[0.14em] text-[#bfe3ff]">NO GUESSWORK NEEDED</p>
           <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">See your rate before you start the conversation.</h2>
           <p className="mt-5 max-w-lg text-sm leading-7 text-[#c8ccc7]">Our calculator gives you a simple view of current Naira gift-card rates before you pick a trade flow.</p>
-          <Link href="/giftcard-calculator" className="mt-8 inline-flex rounded-full bg-[#d6c7ff] px-5 py-3 text-sm font-bold text-[#161818] transition hover:bg-[#e5dcff]">Open calculator <span className="ml-2">→</span></Link>
+          <Link href="/giftcard-calculator" className="mt-8 inline-flex rounded-full bg-[#bfe3ff] px-5 py-3 text-sm font-bold text-[#161818] transition hover:bg-[#dbf1ff]">Open calculator <span className="ml-2">→</span></Link>
         </div>
         <div>
           <p className="text-xs font-extrabold tracking-[0.14em] text-[#c6f65c]">QUESTIONS, ANSWERED</p>

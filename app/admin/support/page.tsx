@@ -149,7 +149,7 @@ export default function AdminSupportPage() {
                     <h3 className="mt-3 text-xl font-bold">{selectedTicket.subject}</h3>
                     <p className="mt-1 break-all text-sm text-[#a9afa9]">Customer: {selectedTicket.user.email}</p>
                   </div>
-                  <button type="button" onClick={() => void toggleStatus()} disabled={statusSaving} className="rounded-xl bg-[#d6c7ff] px-4 py-2.5 text-sm font-bold text-[#161818] disabled:opacity-60">
+                  <button type="button" onClick={() => void toggleStatus()} disabled={statusSaving} className="rounded-xl bg-[#bfe3ff] px-4 py-2.5 text-sm font-bold text-[#161818] disabled:opacity-60">
                     {statusSaving ? "Saving..." : selectedTicket.status === "OPEN" ? "Mark closed" : "Reopen ticket"}
                   </button>
                 </div>
@@ -161,7 +161,7 @@ export default function AdminSupportPage() {
                     const isAdmin = message.sender.role === "ADMIN";
                     return (
                       <div key={message.id} className={`flex ${message.isOwn ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.isOwn ? "rounded-br-md bg-[#c6f65c] text-[#161818]" : isAdmin ? "rounded-bl-md bg-[#d6c7ff] text-[#161818]" : "rounded-bl-md bg-[#2a2e2d] text-[#f4f3ee]"}`}>
+                        <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.isOwn ? "rounded-br-md bg-[#c6f65c] text-[#161818]" : isAdmin ? "rounded-bl-md bg-[#bfe3ff] text-[#161818]" : "rounded-bl-md bg-[#2a2e2d] text-[#f4f3ee]"}`}>
                           <div className="mb-1.5 flex items-center justify-between gap-4">
                             <p className="text-xs font-bold">{message.isOwn ? "You" : isAdmin ? "FEXEX Admin" : message.sender.displayName}</p>
                             <time dateTime={message.createdAt} className={`shrink-0 text-[10px] font-medium ${message.isOwn || isAdmin ? "text-[#161818]/60" : "text-[#a9afa9]"}`}>{new Date(message.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time>

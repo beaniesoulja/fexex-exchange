@@ -65,7 +65,7 @@ export default function AdminTeamPage() {
   return (
     <section aria-labelledby="team-heading" className="fexex-pop-in space-y-5">
       <div>
-        <p className="text-xs font-semibold tracking-wide text-[#d6c7ff]">TEAM & PERMISSIONS</p>
+        <p className="text-xs font-semibold tracking-wide text-[#bfe3ff]">TEAM & PERMISSIONS</p>
         <h2 id="team-heading" className="mt-1 text-2xl font-bold">Sub-admins</h2>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-[#a9afa9]">Give a trusted user limited access to verify trades and/or set rates, without full admin access to users, analytics, or support.</p>
       </div>

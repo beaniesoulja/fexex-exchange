@@ -27,14 +27,14 @@ export default function AdminOverviewPage() {
         {[
           ["Today’s volume", formatNaira(analytics.stats.todayVolume), "All submitted trades today", "#c6f65c"],
           ["Pending actions", analytics.stats.pendingTrades, `${analytics.stats.pendingGiftCardTrades} cards · ${analytics.stats.pendingCryptoTrades} crypto`, "#f5c76a"],
-          ["Trades today", analytics.stats.todayTrades, "New trade sessions", "#d6c7ff"],
+          ["Trades today", analytics.stats.todayTrades, "New trade sessions", "#bfe3ff"],
           ["Customers online", analytics.stats.onlineUsers, `Active in the last ${analytics.onlineWindowMinutes} minutes`, "#f4f3ee"],
         ].map(([label, value, detail, color]) => <div key={String(label)} className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4"><p className="text-xs font-medium text-[#a9afa9]">{label}</p><p className="mt-2 text-2xl font-bold" style={{ color: String(color) }}>{value}</p><p className="mt-1 text-xs text-[#777a75]">{detail}</p></div>)}
       </div>}
 
       <div className="mb-5 grid gap-3 lg:grid-cols-3">
         <div className={`rounded-2xl border p-4 ${orders.length ? "border-[#f5c76a]/40 bg-[#f5c76a]/10" : "border-[#c6f65c]/20 bg-[#c6f65c]/5"}`}><p className="text-xs font-bold tracking-wide text-[#f5c76a]">ALERT CENTER</p><p className="mt-2 font-semibold text-[#f4f3ee]">{orders.length ? `${orders.length} trade${orders.length === 1 ? "" : "s"} needs human review` : "No pending trades"}</p><p className="mt-1 text-xs leading-5 text-[#a9afa9]">Every trade remains pending until an authorized admin records an outcome.</p></div>
-        <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4"><p className="text-xs font-bold tracking-wide text-[#d6c7ff]">ACCESS SAFETY</p><p className="mt-2 font-semibold text-[#f4f3ee]">Admin-only workspace</p><p className="mt-1 text-xs leading-5 text-[#a9afa9]">Customer-facing prices stay separate from the controls in this workspace.</p></div>
+        <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4"><p className="text-xs font-bold tracking-wide text-[#bfe3ff]">ACCESS SAFETY</p><p className="mt-2 font-semibold text-[#f4f3ee]">Admin-only workspace</p><p className="mt-1 text-xs leading-5 text-[#a9afa9]">Customer-facing prices stay separate from the controls in this workspace.</p></div>
         <div className="rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-4"><p className="text-xs font-bold tracking-wide text-[#c6f65c]">AUDIT TRAIL</p><p className="mt-2 font-semibold text-[#f4f3ee]">Live customer activity</p><p className="mt-1 text-xs leading-5 text-[#a9afa9]">Recent sign-ins and submitted trades appear below as they happen.</p></div>
       </div>
 
@@ -46,7 +46,7 @@ export default function AdminOverviewPage() {
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             {[
-              ["Total users", analytics.stats.totalUsers, "#d6c7ff"],
+              ["Total users", analytics.stats.totalUsers, "#bfe3ff"],
               ["Online now", analytics.stats.onlineUsers, "#c6f65c"],
               ["All trades", analytics.stats.totalTrades, "#f4f3ee"],
               ["Pending trades", analytics.stats.pendingTrades, "#f5c76a"],
@@ -70,7 +70,7 @@ export default function AdminOverviewPage() {
                 <ol className="mt-4 space-y-3">
                   {analytics.topUsers.map((user, index) => (
                     <li key={user.id} className="flex items-center gap-3 border-b border-[#f4f3ee]/10 pb-3 last:border-0 last:pb-0">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#d6c7ff]/15 text-xs font-bold text-[#e5dcff]">{index + 1}</span>
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#bfe3ff]/15 text-xs font-bold text-[#dbf1ff]">{index + 1}</span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-[#f4f3ee]">{user.email}</p>
                         <p className="text-xs text-[#a9afa9]">{user.tradeCount} trade{user.tradeCount === 1 ? "" : "s"}</p>
@@ -94,7 +94,7 @@ export default function AdminOverviewPage() {
                         <p className="min-w-0 break-all text-sm font-semibold text-[#f4f3ee]">{activity.user.email}</p>
                         <p className="shrink-0 text-xs text-[#777a75]">{new Date(activity.createdAt).toLocaleString()}</p>
                       </div>
-                      <p className="mt-1 text-xs font-semibold text-[#d6c7ff]">{activity.type.replaceAll("_", " ")}</p>
+                      <p className="mt-1 text-xs font-semibold text-[#bfe3ff]">{activity.type.replaceAll("_", " ")}</p>
                       {activity.details && <p className="mt-1 text-sm text-[#a9afa9]">{activity.details}</p>}
                     </li>
                   ))}

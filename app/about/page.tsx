@@ -78,8 +78,8 @@ export default function AboutPage() {
       </section>
 
       <section className="relative z-10 mx-auto max-w-4xl px-5 pb-16 sm:px-8 sm:pb-24">
-        <div className="rounded-[2rem] border border-[#d6c7ff]/20 bg-[linear-gradient(145deg,rgba(214,199,255,0.14),rgba(32,35,35,0.95)_60%)] p-7 sm:p-9">
-          <p className="text-xs font-extrabold tracking-[0.14em] text-[#d6c7ff]">OUR MISSION</p>
+        <div className="rounded-[2rem] border border-[#bfe3ff]/20 bg-[linear-gradient(145deg,rgba(191,227,255,0.14),rgba(32,35,35,0.95)_60%)] p-7 sm:p-9">
+          <p className="text-xs font-extrabold tracking-[0.14em] text-[#bfe3ff]">OUR MISSION</p>
           <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">Revolutionizing the gift card trading market.</h2>
           <p className="mt-4 max-w-xl text-sm leading-7 text-[#c8ccc7] sm:text-base">We combine high rates, swift transactions, and excellent customer service into one platform — empowering our users to trade their gift cards efficiently, without the runaround.</p>
         </div>
@@ -127,13 +127,13 @@ export default function AboutPage() {
             <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#c6f65c]/25 bg-[#c6f65c]/10 px-3 py-1.5 text-xs font-semibold text-[#d8ff96]">Coming soon</span>
           </div>
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#202323] p-7">
-            <p className="text-xs font-extrabold tracking-[0.14em] text-[#e5dcff]">SPIN & WIN</p>
+            <p className="text-xs font-extrabold tracking-[0.14em] text-[#dbf1ff]">SPIN & WIN</p>
             <h3 className="mt-3 text-xl font-semibold tracking-[-0.03em]">A spin for every trade.</h3>
             <p className="mt-3 flex items-center gap-4 text-sm leading-6 text-[#a9afa9]">
-              <span aria-hidden="true" className="fexex-spin-wheel flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-dashed border-[#d6c7ff]/50 bg-[conic-gradient(from_0deg,#c6f65c_0deg_60deg,#d6c7ff_60deg_120deg,#202323_120deg_180deg,#c6f65c_180deg_240deg,#d6c7ff_240deg_300deg,#202323_300deg_360deg)]" />
+              <span aria-hidden="true" className="fexex-spin-wheel flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-dashed border-[#bfe3ff]/50 bg-[conic-gradient(from_0deg,#c6f65c_0deg_60deg,#bfe3ff_60deg_120deg,#202323_120deg_180deg,#c6f65c_180deg_240deg,#bfe3ff_240deg_300deg,#202323_300deg_360deg)]" />
               Trade and get a chance to win extra cash. This program is coming soon to your account.
             </p>
-            <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#d6c7ff]/25 bg-[#d6c7ff]/10 px-3 py-1.5 text-xs font-semibold text-[#e5dcff]">Coming soon</span>
+            <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#bfe3ff]/25 bg-[#bfe3ff]/10 px-3 py-1.5 text-xs font-semibold text-[#dbf1ff]">Coming soon</span>
           </div>
         </div>
       </section>

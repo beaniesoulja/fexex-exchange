@@ -194,7 +194,7 @@ export default function TradeRoomPage() {
                 <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{tradeName} trade room</h1>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-[#c9cec8]">{isClosed ? "This successful trade is complete and the conversation is now closed." : "Message the other party here. New replies appear automatically every few seconds."}</p>
               </div>
-              {trade?.referenceId && <div className="rounded-2xl border border-[#c6f65c]/30 bg-[#151817]/50 px-4 py-3"><p className="text-[10px] font-bold tracking-[.13em] text-[#a9afa9]">TRADE SESSION ID</p><button type="button" onClick={() => void copySessionId()} className="mt-1 block max-w-52 truncate font-mono text-xs font-bold text-[#d8ff96] transition hover:text-white" title="Copy Trade Session ID">{copied ? "Copied" : trade.referenceId}</button><Link href={`/trade/${orderId}/receipt`} className="mt-2 inline-block text-xs font-semibold text-[#d6c7ff] hover:text-white">View receipt →</Link></div>}
+              {trade?.referenceId && <div className="rounded-2xl border border-[#c6f65c]/30 bg-[#151817]/50 px-4 py-3"><p className="text-[10px] font-bold tracking-[.13em] text-[#a9afa9]">TRADE SESSION ID</p><button type="button" onClick={() => void copySessionId()} className="mt-1 block max-w-52 truncate font-mono text-xs font-bold text-[#d8ff96] transition hover:text-white" title="Copy Trade Session ID">{copied ? "Copied" : trade.referenceId}</button><Link href={`/trade/${orderId}/receipt`} className="mt-2 inline-block text-xs font-semibold text-[#bfe3ff] hover:text-white">View receipt →</Link></div>}
             </div>
           </div>
 
@@ -209,7 +209,7 @@ export default function TradeRoomPage() {
                 // user sent appear on the right, everything else on the left.
                 return (
                   <div key={message.id} className={`flex ${message.isOwn ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.isOwn ? "rounded-br-md bg-[#c6f65c] text-[#161818]" : isAdmin ? "rounded-bl-md bg-[#d6c7ff] text-[#161818]" : "rounded-bl-md bg-[#2a2e2d] text-[#f4f3ee]"}`}>
+                    <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.isOwn ? "rounded-br-md bg-[#c6f65c] text-[#161818]" : isAdmin ? "rounded-bl-md bg-[#bfe3ff] text-[#161818]" : "rounded-bl-md bg-[#2a2e2d] text-[#f4f3ee]"}`}>
                       <div className="mb-1.5 flex items-center justify-between gap-4"><p className="text-xs font-bold">{message.isOwn ? "You" : isAdmin ? "FEXEX Admin" : message.sender.displayName}</p><time dateTime={message.createdAt} className={`shrink-0 text-[10px] font-medium ${message.isOwn || isAdmin ? "text-[#161818]/60" : "text-[#a9afa9]"}`}>{new Date(message.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></div>
                       {message.imageData && <img src={message.imageData} alt={`${message.sender.displayName} attached an image`} className="mb-2 max-h-72 w-full rounded-xl object-cover" />}
                       {message.body && <p className="whitespace-pre-wrap break-words leading-6">{message.body}</p>}
