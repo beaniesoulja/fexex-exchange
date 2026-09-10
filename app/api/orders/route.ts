@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ensurePricingDefaults } from '@/lib/pricing';
+import { validateImageDataUrl } from '@/lib/image-upload';
 
 const MAX_GIFTCARD_AMOUNT_USD = 5_000;
 
@@ -35,8 +36,11 @@ export async function POST(req: Request) {
     if (typeof cardPin !== "undefined" && (typeof cardPin !== "string" || cardPin.length > 120)) {
       return NextResponse.json({ error: "Enter a valid card PIN." }, { status: 400 });
     }
-    if (typeof imageBase64 !== "undefined" && imageBase64 !== null && (typeof imageBase64 !== "string" || !imageBase64.startsWith("data:image/") || imageBase64.length > 3_000_000)) {
-      return NextResponse.json({ error: "Upload a valid card image under 2MB." }, { status: 400 });
+    const validatedImage = typeof imageBase64 !== "undefined" && imageBase64 !== null
+      ? validateImageDataUrl(imageBase64, 2_000_000)
+      : null;
+    if (typeof imageBase64 !== "undefined" && imageBase64 !== null && !validatedImage) {
+      return NextResponse.json({ error: "Upload a JPG, PNG, or WebP card image under 2MB." }, { status: 400 });
     }
 
     await ensurePricingDefaults();
@@ -82,7 +86,7 @@ export async function POST(req: Request) {
           giftCardCountry: selectedSubcategory?.country ?? country,
           giftCardSubcategory: selectedSubcategory?.label ?? null,
           giftCardCode: `${cardCode?.trim() || 'N/A'} | ${cardPin?.trim() || 'N/A'}`,
-          giftCardImage: imageBase64 ?? null,
+          giftCardImage: validatedImage,
         },
       });
 

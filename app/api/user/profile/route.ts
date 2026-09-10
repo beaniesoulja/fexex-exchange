@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NIGERIAN_BANKS } from '@/lib/nigerian-banks';
 import { prisma } from '@/lib/prisma';
+import { validateImageDataUrl } from '@/lib/image-upload';
 
 const MINIMUM_AGE_YEARS = 18;
 const USERNAME_CHANGE_COOLDOWN_DAYS = 30;
@@ -202,17 +203,17 @@ export async function POST(req: Request) {
     }
 
     if (avatarData) {
-      const isSupportedImage = /^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(avatarData);
-      if (!isSupportedImage || avatarData.length > 1_500_000) {
+      const validatedAvatar = validateImageDataUrl(avatarData, 1_000_000);
+      if (!validatedAvatar) {
         return NextResponse.json({ error: "Choose a JPG, PNG, or WebP image smaller than 1 MB." }, { status: 400 });
       }
 
       await prisma.user.update({
         where: { id: session.user.id },
-        data: { avatarData },
+        data: { avatarData: validatedAvatar },
       });
 
-      return NextResponse.json({ message: "Profile photo saved successfully!", avatarData }, { status: 200 });
+      return NextResponse.json({ message: "Profile photo saved successfully!", avatarData: validatedAvatar }, { status: 200 });
     }
 
     if (walletAddress) {

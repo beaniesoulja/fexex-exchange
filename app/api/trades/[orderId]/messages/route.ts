@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyAdminOfTradeMessage } from "@/lib/notify";
+import { validateImageDataUrl } from "@/lib/image-upload";
 
 function tradeDisplayName(user: { username: string | null }) {
   return user.username ? `@${user.username}` : "FEXEX user";
@@ -44,11 +45,11 @@ export async function POST(request: Request, context: RouteContext<"/api/trades/
   const body = payload && typeof payload === "object" ? (payload as { body?: unknown }).body : undefined;
   const imageData = payload && typeof payload === "object" ? (payload as { imageData?: unknown }).imageData : undefined;
   const message = typeof body === "string" ? body.trim() : "";
-  const attachedImage = typeof imageData === "string" ? imageData : "";
-  if ((!message && !attachedImage) || message.length > 1000) return NextResponse.json({ error: "Add a message or an image. Messages can be up to 1000 characters." }, { status: 400 });
-  if (attachedImage && (!/^data:image\/(jpeg|png|webp);base64,/.test(attachedImage) || attachedImage.length > 3_000_000)) {
+  const attachedImage = typeof imageData === "string" && imageData ? validateImageDataUrl(imageData, 2_000_000) : null;
+  if (imageData && !attachedImage) {
     return NextResponse.json({ error: "Attach a JPG, PNG, or WebP image under 2 MB." }, { status: 400 });
   }
+  if ((!message && !attachedImage) || message.length > 1000) return NextResponse.json({ error: "Add a message or an image. Messages can be up to 1000 characters." }, { status: 400 });
   if (permitted.order!.status === "COMPLETED") {
     return NextResponse.json({ error: "This successful trade is closed. No further action is needed." }, { status: 409 });
   }
