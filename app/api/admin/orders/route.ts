@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { getUsdToNairaRate } from '@/lib/pricing';
 import { canVerifyTrades } from '@/lib/admin-access';
 import { formatNaira, formatUsd } from '@/lib/currency';
+import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function GET() {
   try {
@@ -14,6 +15,8 @@ export async function GET() {
     if (!session || !canVerifyTrades(session.user)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const limited = await enforceRateLimit(`admin-orders-get:${session.user.id}`, RATE_LIMITS.authedReadModerate);
+    if (limited) return limited;
 
     const pendingOrders = await prisma.order.findMany({
       where: { status: 'PENDING' },
@@ -36,6 +39,8 @@ export async function PATCH(req: Request) {
     if (!session || !canVerifyTrades(session.user)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const limited = await enforceRateLimit(`admin-orders-patch:${session.user.id}`, RATE_LIMITS.adminAction);
+    if (limited) return limited;
 
     const body = await req.json();
     const { orderId, action } = body;

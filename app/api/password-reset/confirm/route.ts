@@ -3,8 +3,12 @@ import bcrypt from "bcryptjs";
 
 import { hashPasswordResetToken } from "@/lib/password-reset";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit(`password-confirm:${getClientIp(request)}`, RATE_LIMITS.tokenConfirm);
+  if (limited) return limited;
+
   let body: { token?: unknown; password?: unknown };
 
   try {

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 const ONLINE_WINDOW_MINUTES = 5;
 
@@ -11,6 +12,8 @@ export async function GET() {
   if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const limited = await enforceRateLimit(`admin-analytics:${session.user.id}`, RATE_LIMITS.authedReadModerate);
+  if (limited) return limited;
 
   try {
     const onlineSince = new Date(Date.now() - ONLINE_WINDOW_MINUTES * 60 * 1000);

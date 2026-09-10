@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { NIGERIAN_BANKS } from '@/lib/nigerian-banks';
 import { prisma } from '@/lib/prisma';
 import { validateImageDataUrl } from '@/lib/image-upload';
+import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const MINIMUM_AGE_YEARS = 18;
 const USERNAME_CHANGE_COOLDOWN_DAYS = 30;
@@ -22,6 +23,8 @@ export async function GET(request: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const limited = await enforceRateLimit(`profile-get:${session.user.id}`, RATE_LIMITS.authedReadFast);
+    if (limited) return limited;
 
     const accountOnly = new URL(request.url).searchParams.get("scope") === "account";
 
@@ -110,6 +113,8 @@ export async function POST(req: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const limited = await enforceRateLimit(`profile-post:${session.user.id}`, RATE_LIMITS.accountWrite);
+    if (limited) return limited;
 
     const body = await req.json();
     const avatarData = typeof body.avatarData === "string" ? body.avatarData : "";

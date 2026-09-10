@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUsdToNairaRate } from "@/lib/pricing";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 const ASSET = "USDT";
 const MINIMUM_SWAP_AMOUNT = 0.01;
@@ -13,6 +14,8 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const limited = await enforceRateLimit(`swaps-get:${session.user.id}`, RATE_LIMITS.authedReadFast);
+  if (limited) return limited;
 
   const rate = await getUsdToNairaRate();
   return NextResponse.json({
@@ -30,6 +33,8 @@ export async function POST(req: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const limited = await enforceRateLimit(`swaps-post:${session.user.id}`, RATE_LIMITS.accountWrite);
+    if (limited) return limited;
 
     const rate = await getUsdToNairaRate();
 

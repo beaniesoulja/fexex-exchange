@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (session?.user?.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`admin-support-get:${session.user.id}`, RATE_LIMITS.authedReadModerate);
+  if (limited) return limited;
 
   const tickets = await prisma.supportTicket.findMany({
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
@@ -24,6 +27,8 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (session?.user?.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`admin-support-patch:${session.user.id}`, RATE_LIMITS.adminAction);
+  if (limited) return limited;
 
   const payload = await request.json().catch(() => null);
   const ticketId = typeof payload?.ticketId === "string" ? payload.ticketId : "";

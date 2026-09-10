@@ -3,8 +3,12 @@ import { NextResponse } from "next/server";
 import { giftCards } from "@/lib/gift-cards";
 import { ensurePricingDefaults } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = await enforceRateLimit(`gift-cards:${getClientIp(request)}`, RATE_LIMITS.publicRead);
+  if (limited) return limited;
+
   try {
     let savedRates = await prisma.giftCardRate.findMany({
       include: { subcategories: { where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { label: "asc" }] } },

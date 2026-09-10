@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { DAILY_QUOTAS, enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,10 @@ export async function POST(request: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Please log in to request a crypto withdrawal." }, { status: 401 });
     }
+    const rateLimited = await enforceRateLimit(`withdrawals-submit:${session.user.id}`, RATE_LIMITS.financialSubmit);
+    if (rateLimited) return rateLimited;
+    const quotaLimited = await enforceRateLimit(`withdrawals-quota:${session.user.id}`, DAILY_QUOTAS.trades, "You've reached today's withdrawal request limit. Please try again tomorrow or contact support.");
+    if (quotaLimited) return quotaLimited;
 
     const body = await request.json();
     const asset = typeof body.asset === "string" ? body.asset.trim().toUpperCase() : "";

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyAdminOfTradeMessage } from "@/lib/notify";
 import { validateImageDataUrl } from "@/lib/image-upload";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 function tradeDisplayName(user: { username: string | null }) {
   return user.username ? `@${user.username}` : "FEXEX user";
@@ -21,6 +22,8 @@ export async function GET(_request: Request, context: RouteContext<"/api/trades/
   const { orderId } = await context.params;
   const permitted = await access(orderId);
   if (permitted.error) return permitted.error;
+  const limited = await enforceRateLimit(`trade-messages-get:${permitted.session!.user.id}`, RATE_LIMITS.authedReadFast);
+  if (limited) return limited;
   // Keep the polling response bounded as a trade room grows. The client only
   // needs the most recent conversation when it refreshes.
   const messages = (await prisma.tradeMessage.findMany({
@@ -41,6 +44,8 @@ export async function POST(request: Request, context: RouteContext<"/api/trades/
   const { orderId } = await context.params;
   const permitted = await access(orderId);
   if (permitted.error) return permitted.error;
+  const limited = await enforceRateLimit(`trade-messages-post:${permitted.session!.user.id}`, RATE_LIMITS.chatWrite);
+  if (limited) return limited;
   const payload = await request.json().catch(() => null);
   const body = payload && typeof payload === "object" ? (payload as { body?: unknown }).body : undefined;
   const imageData = payload && typeof payload === "object" ? (payload as { imageData?: unknown }).imageData : undefined;

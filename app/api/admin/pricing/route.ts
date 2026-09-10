@@ -6,6 +6,7 @@ import { giftCards } from "@/lib/gift-cards";
 import { ensurePricingDefaults } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { canManageRates } from "@/lib/admin-access";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 const MAX_USD_TO_NAIRA_RATE = 10_000_000;
 const MAX_NAIRA_PAYOUT_RATE = 1_000_000;
@@ -18,7 +19,8 @@ class PricingValidationError extends Error {}
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  return canManageRates(session?.user);
+  if (!canManageRates(session?.user)) return null;
+  return session!.user.id;
 }
 
 function cleanText(value: unknown, field: string, required = true, maxLength = MAX_LABEL_LENGTH) {
@@ -43,7 +45,10 @@ function readPayoutRate(value: unknown, label: string) {
 }
 
 export async function GET() {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminId = await requireAdmin();
+  if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`admin-pricing-get:${adminId}`, RATE_LIMITS.authedReadModerate);
+  if (limited) return limited;
 
   try {
     await ensurePricingDefaults();
@@ -60,7 +65,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminId = await requireAdmin();
+  if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`admin-pricing-post:${adminId}`, RATE_LIMITS.adminAction);
+  if (limited) return limited;
 
   try {
     const body = await request.json();
@@ -123,7 +131,10 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminId = await requireAdmin();
+  if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`admin-pricing-patch:${adminId}`, RATE_LIMITS.adminAction);
+  if (limited) return limited;
 
   try {
     const body = await request.json();

@@ -3,10 +3,13 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET(_request: Request, context: RouteContext<"/api/trades/[orderId]/receipt">) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`receipt-get:${session.user.id}`, RATE_LIMITS.authedReadFast);
+  if (limited) return limited;
 
   const { orderId } = await context.params;
   const order = await prisma.order.findUnique({

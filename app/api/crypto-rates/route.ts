@@ -3,8 +3,12 @@ import { NextResponse } from "next/server";
 import { cryptoAssets } from "@/lib/crypto-assets";
 import { ensurePricingDefaults } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = await enforceRateLimit(`crypto-rates:${getClientIp(request)}`, RATE_LIMITS.publicRead);
+  if (limited) return limited;
+
   try {
     let savedRates = await prisma.cryptoRate.findMany();
 

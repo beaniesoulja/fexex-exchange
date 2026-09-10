@@ -2,6 +2,7 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { enforceRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -35,6 +36,9 @@ function hasValidSignature(payload: unknown, signature: string | null, secret: s
 // This route listens for Instant Payment Notifications (IPNs) from NOWPayments
 export async function POST(req: Request) {
   try {
+    const limited = await enforceRateLimit(`nowpayments-ipn:${getClientIp(req)}`, RATE_LIMITS.webhook);
+    if (limited) return limited;
+
     const ipnKey = process.env.NOWPAYMENTS_IPN_KEY;
     if (!ipnKey) {
       console.error('NOWPayments IPN key is missing.');

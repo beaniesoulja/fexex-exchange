@@ -3,10 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { isFullAdmin } from "@/lib/admin-access";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!isFullAdmin(session?.user)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`admin-team-get:${session!.user.id}`, RATE_LIMITS.authedReadModerate);
+  if (limited) return limited;
 
   const search = new URL(request.url).searchParams.get("q")?.trim().toLowerCase() ?? "";
 
@@ -33,6 +36,8 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !isFullAdmin(session.user)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`admin-team-patch:${session.user.id}`, RATE_LIMITS.adminAction);
+  if (limited) return limited;
 
   const payload = await request.json().catch(() => null);
   const userId = typeof payload?.userId === "string" ? payload.userId : "";

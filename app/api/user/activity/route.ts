@@ -3,12 +3,15 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const limited = await enforceRateLimit(`user-activity-get:${session.user.id}`, RATE_LIMITS.authedReadModerate);
+  if (limited) return limited;
 
   try {
     const activities = await prisma.userActivity.findMany({
@@ -29,6 +32,8 @@ export async function POST() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const limited = await enforceRateLimit(`user-activity-post:${session.user.id}`, RATE_LIMITS.heartbeat);
+  if (limited) return limited;
 
   try {
     await prisma.user.update({

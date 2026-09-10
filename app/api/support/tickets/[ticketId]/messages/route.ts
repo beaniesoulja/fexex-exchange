@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { validateImageDataUrl } from "@/lib/image-upload";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 function ticketDisplayName(user: { username: string | null }) {
   return user.username ? `@${user.username}` : "FEXEX user";
@@ -25,6 +26,8 @@ export async function GET(_request: Request, context: RouteContext<"/api/support
   const { ticketId } = await context.params;
   const permitted = await access(ticketId);
   if (permitted.error) return permitted.error;
+  const limited = await enforceRateLimit(`ticket-messages-get:${permitted.session!.user.id}`, RATE_LIMITS.authedReadFast);
+  if (limited) return limited;
 
   const messages = (await prisma.supportMessage.findMany({
     where: { ticketId },
@@ -46,6 +49,8 @@ export async function POST(request: Request, context: RouteContext<"/api/support
   const { ticketId } = await context.params;
   const permitted = await access(ticketId);
   if (permitted.error) return permitted.error;
+  const limited = await enforceRateLimit(`ticket-messages-post:${permitted.session!.user.id}`, RATE_LIMITS.chatWrite);
+  if (limited) return limited;
 
   const payload = await request.json().catch(() => null);
   const body = typeof payload?.body === "string" ? payload.body.trim() : "";

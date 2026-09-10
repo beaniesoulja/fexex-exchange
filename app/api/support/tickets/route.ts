@@ -3,10 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { validateImageDataUrl } from "@/lib/image-upload";
+import { DAILY_QUOTAS, enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceRateLimit(`tickets-get:${session.user.id}`, RATE_LIMITS.authedReadModerate);
+  if (limited) return limited;
 
   const tickets = await prisma.supportTicket.findMany({
     where: { userId: session.user.id },
@@ -23,6 +26,10 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rateLimited = await enforceRateLimit(`tickets-create:${session.user.id}`, RATE_LIMITS.ticketCreate);
+  if (rateLimited) return rateLimited;
+  const quotaLimited = await enforceRateLimit(`tickets-quota:${session.user.id}`, DAILY_QUOTAS.tickets, "You've reached today's support ticket limit. Please try again tomorrow.");
+  if (quotaLimited) return quotaLimited;
 
   const payload = await request.json().catch(() => null);
   const subject = typeof payload?.subject === "string" ? payload.subject.trim().slice(0, 140) : "";

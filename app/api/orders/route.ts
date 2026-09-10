@@ -6,17 +6,22 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ensurePricingDefaults } from '@/lib/pricing';
 import { validateImageDataUrl } from '@/lib/image-upload';
+import { DAILY_QUOTAS, enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const MAX_GIFTCARD_AMOUNT_USD = 5_000;
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Please log in to submit a gift card." }, { status: 401 });
     }
+    const rateLimited = await enforceRateLimit(`orders-submit:${session.user.id}`, RATE_LIMITS.financialSubmit);
+    if (rateLimited) return rateLimited;
+    const quotaLimited = await enforceRateLimit(`orders-quota:${session.user.id}`, DAILY_QUOTAS.trades, "You've reached today's trade submission limit. Please try again tomorrow or contact support.");
+    if (quotaLimited) return quotaLimited;
 
     const { brand, country, subcategory, amount, cardCode, cardPin, imageBase64 } = body;
     const user = await prisma.user.findUnique({ where: { id: session.user.id } });
