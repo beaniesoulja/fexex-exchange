@@ -14,31 +14,31 @@ const floatingIcons = [
 
 const values = [
   {
-    icon: "💸",
+    icon: "H",
     title: "Highest Rates",
     summary: "Some of the best rates in the market.",
-    detail: "We keep our gift card and crypto rates competitive so you get the most Naira for what you're trading — no lowball offers, no hidden cuts.",
+    detail: "We keep our gift card and crypto rates competitive so you get the most Naira for what you're trading, with no lowball offers and no hidden cuts.",
   },
   {
-    icon: "⚡",
+    icon: "Q",
     title: "Quick Transactions",
     summary: "Built for speed and efficiency.",
     detail: "From submission to review to payout, every step of the FEXEX trade flow is designed to move fast without cutting corners on security.",
   },
   {
-    icon: "🧭",
+    icon: "U",
     title: "User-Friendly Interface",
     summary: "Simple, hassle-free trading.",
     detail: "Every gift card and crypto asset gets its own dedicated trade page, so you always know exactly what to enter and what happens next.",
   },
   {
-    icon: "🎁",
+    icon: "C",
     title: "Customer Rewards",
     summary: "Refer & Earn, Spin & Win.",
     detail: "Earn extra cash and commissions through programs like Refer & Earn and Spin & Win, rewarding you for trading and bringing others along.",
   },
   {
-    icon: "🛟",
+    icon: "D",
     title: "Dedicated Support",
     summary: "Help at a moment's notice.",
     detail: "Our support team is on hand to help with questions or issues on any trade, right from your account.",
@@ -73,15 +73,15 @@ export default function AboutPage() {
         ))}
 
         <p className="relative mx-auto inline-flex items-center gap-2 rounded-full border border-[#c6f65c]/30 bg-[#c6f65c]/10 px-3 py-1.5 text-xs font-bold tracking-wide text-[#d8ff96]"><span className="h-1.5 w-1.5 rounded-full bg-[#c6f65c] shadow-[0_0_0_4px_rgba(198,246,92,0.12)]" /> TRUSTED SINCE 2026</p>
-        <h1 className="relative mx-auto mt-5 max-w-2xl text-4xl font-semibold leading-[1.05] tracking-[-0.05em] sm:text-5xl">Say hello to <span className="fexex-serif text-[#c6f65c]">FEXEX</span> — the gift card platform that trades you up, not down.</h1>
-        <p className="relative mx-auto mt-6 max-w-2xl text-base leading-7 text-[#c8ccc7] sm:text-lg">Since 2026, FEXEX has steadily grown into an industry leader — hitting real milestones along the way, powered by a dedicated team committed to exceptional service. That focus has earned the trust and loyalty of countless users across Nigeria.</p>
+        <h1 className="relative mx-auto mt-5 max-w-2xl text-4xl font-semibold leading-[1.05] tracking-[-0.05em] sm:text-5xl">Say hello to <span className="fexex-serif text-[#c6f65c]">FEXEX</span>, the gift card platform that trades you up, not down.</h1>
+        <p className="relative mx-auto mt-6 max-w-2xl text-base leading-7 text-[#c8ccc7] sm:text-lg">Since 2026, FEXEX has steadily grown into an industry leader, hitting real milestones along the way, powered by a dedicated team committed to exceptional service. That focus has earned the trust and loyalty of countless users across Nigeria.</p>
       </section>
 
       <section className="relative z-10 mx-auto max-w-4xl px-5 pb-16 sm:px-8 sm:pb-24">
         <div className="rounded-[2rem] border border-[#bfe3ff]/20 bg-[linear-gradient(145deg,rgba(191,227,255,0.14),rgba(32,35,35,0.95)_60%)] p-7 sm:p-9">
           <p className="text-xs font-extrabold tracking-[0.14em] text-[#bfe3ff]">OUR MISSION</p>
           <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">Revolutionizing the gift card trading market.</h2>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-[#c8ccc7] sm:text-base">We combine high rates, swift transactions, and excellent customer service into one platform — empowering our users to trade their gift cards efficiently, without the runaround.</p>
+          <p className="mt-4 max-w-xl text-sm leading-7 text-[#c8ccc7] sm:text-base">We combine high rates, swift transactions, and excellent customer service into one platform, empowering our users to trade their gift cards efficiently, without the runaround.</p>
         </div>
       </section>
 
@@ -100,7 +100,7 @@ export default function AboutPage() {
                   aria-expanded={isOpen}
                   className="flex w-full items-center gap-4 px-5 py-4 text-left sm:px-6 sm:py-5"
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#c6f65c]/10 text-xl">{value.icon}</span>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#c6f65c]/10 text-lg font-bold text-[#c6f65c]">{value.icon}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-base font-bold tracking-[-0.02em]">{value.title}</span>
                     <span className="block text-xs text-[#a9afa9] sm:text-sm">{value.summary}</span>

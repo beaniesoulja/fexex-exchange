@@ -46,13 +46,13 @@ export default function AdminVerificationPage() {
           return next;
         });
         void fetchAnalytics();
-        alert(`✅ ${action === "SUCCESS" ? "Gift-card trade marked successful" : action === "FAIL" ? "Gift-card trade marked failed" : action === "APPROVE" ? "Withdrawal approved" : "Trade rejected"}!`);
+        alert(`${action === "SUCCESS" ? "Gift-card trade marked successful" : action === "FAIL" ? "Gift-card trade marked failed" : action === "APPROVE" ? "Withdrawal approved" : "Trade rejected"}!`);
       } else {
         const data = await res.json().catch(() => null);
-        alert(`❌ ${data?.error ?? "Failed to process order."}`);
+        alert(data?.error ?? "Failed to process order.");
       }
     } catch {
-      alert("❌ Network error.");
+      alert("Network error.");
     } finally {
       setActionLoading(null);
     }
@@ -78,11 +78,11 @@ export default function AdminVerificationPage() {
             <article className="rounded-3xl border border-[#f5c76a]/25 bg-[#202323] p-5">
               <p className="text-xs font-bold tracking-wide text-[#f5c76a]">RESOLUTION CONTROL</p>
               <h4 className="mt-2 text-lg font-bold">Record the final outcome</h4>
-              <p className="mt-1 text-sm leading-6 text-[#a9afa9]">A successful card trade closes cleanly. If some cards in a batch were invalid, lower the approved value below and explain why — the customer sees the adjusted payout and your note.</p>
+              <p className="mt-1 text-sm leading-6 text-[#a9afa9]">A successful card trade closes cleanly. If some cards in a batch were invalid, lower the approved value below and explain why: the customer sees the adjusted payout and your note.</p>
 
               {isGiftCard && (
                 <div className="mt-5">
-                  <label htmlFor={`approved-${selectedOrder.id}`} className="mb-1 block text-xs font-semibold text-[#a9afa9]">Approved value (USD) <span className="text-[#777a75]">— submitted: ${selectedOrder.amount.toLocaleString()}</span></label>
+                  <label htmlFor={`approved-${selectedOrder.id}`} className="mb-1 block text-xs font-semibold text-[#a9afa9]">Approved value (USD) <span className="text-[#777a75]">(submitted: ${selectedOrder.amount.toLocaleString()})</span></label>
                   <input
                     id={`approved-${selectedOrder.id}`}
                     type="number"
@@ -99,7 +99,7 @@ export default function AdminVerificationPage() {
                 </div>
               )}
 
-              <label htmlFor={`failure-${selectedOrder.id}`} className="mt-5 mb-1 block text-xs font-semibold text-[#a9afa9]">{isPartial ? "Note for customer" : "Failure description"} <span className="text-red-300">{isPartial ? "(required — explain the adjustment)" : "(required to mark failed)"}</span></label>
+              <label htmlFor={`failure-${selectedOrder.id}`} className="mt-5 mb-1 block text-xs font-semibold text-[#a9afa9]">{isPartial ? "Note for customer" : "Failure description"} <span className="text-red-300">{isPartial ? "(required: explain the adjustment)" : "(required to mark failed)"}</span></label>
               <textarea id={`failure-${selectedOrder.id}`} value={noteText} onChange={(event) => setFailureDescriptions((current) => ({ ...current, [selectedOrder.id]: event.target.value }))} maxLength={800} rows={5} placeholder={isPartial ? "e.g. 1 of 5 $100 cards was invalid, so $400 was approved." : "Explain clearly what went wrong with this trade."} className="w-full resize-y rounded-xl border border-[#f4f3ee]/15 bg-[#1a1d1d] px-3 py-2 text-sm text-[#f4f3ee] outline-none placeholder:text-[#777a75] focus:border-red-300" />
               <div className="mt-4 grid gap-3">
                 <p className="rounded-xl border border-[#bfe3ff]/25 bg-[#bfe3ff]/5 px-4 py-3 text-sm leading-6 text-[#d7dbd4]">Customer trade rooms and receipts are customer-only. Review the submitted evidence and record the outcome here.</p>

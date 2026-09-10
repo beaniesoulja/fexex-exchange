@@ -277,8 +277,8 @@ function DashboardContent() {
         {/* Header */}
         <div className="fexex-fade-in mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h1 className="flex items-center gap-2.5 text-3xl font-bold tracking-[-0.03em]">{isWalletPage ? "My Wallet" : "My Dashboard"} <span aria-hidden="true" className="fexex-float-icon inline-block">{isWalletPage ? "💰" : "👋"}</span></h1>
-            <p className="mt-1 text-[#a9afa9]">{isWalletPage ? "Your Naira and crypto holdings, all in one place." : displayUsername ? `Hey @${displayUsername} — your value's ready to move.` : "Your value is ready to move."}</p>
+            <h1 className="text-3xl font-bold tracking-[-0.03em]">{isWalletPage ? "My Wallet" : "My Dashboard"}</h1>
+            <p className="mt-1 text-[#a9afa9]">{isWalletPage ? "Your Naira and crypto holdings, all in one place." : displayUsername ? `Hey @${displayUsername}, your value's ready to move.` : "Your value is ready to move."}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href="/trades" className="rounded-lg border border-[#c6f65c]/45 bg-[#c6f65c]/10 px-4 py-2 font-semibold text-[#d8ff96] transition hover:-translate-y-0.5 hover:bg-[#c6f65c]/20">Pending trades</Link>
@@ -289,12 +289,11 @@ function DashboardContent() {
         {/* Wallet Balances */}
         {isWalletPage && <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div id="settings" className="fexex-pop-in fexex-glow-pulse relative overflow-hidden rounded-2xl bg-[#c6f65c] p-6 text-[#161818] shadow-lg shadow-black/30">
-            <span aria-hidden="true" className="pointer-events-none absolute -right-4 -top-6 text-7xl opacity-15">💸</span>
             <div className="relative mb-1 flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-[#3c4c1c]">{preferredCurrency === "USD" ? "Naira balance (USD view)" : "Naira balance"}</p>
               <button type="button" onClick={() => setIsNairaBalanceVisible((visible) => !visible)} aria-pressed={isNairaBalanceVisible} className="rounded-lg bg-[#161818]/10 px-2.5 py-1 text-xs font-bold text-[#3c4c1c] transition hover:bg-[#161818]/15">{isNairaBalanceVisible ? "Hide" : "Show"}</button>
             </div>
-            <h2 className="relative text-4xl font-bold">{wallet ? isNairaBalanceVisible ? (preferredCurrency === "USD" ? formatUsd(walletFiatValue) : formatNaira(wallet.fiatBalance)) : "••••••" : "—"}</h2>
+            <h2 className="relative text-4xl font-bold">{wallet ? isNairaBalanceVisible ? (preferredCurrency === "USD" ? formatUsd(walletFiatValue) : formatNaira(wallet.fiatBalance)) : "••••••" : "N/A"}</h2>
             {!wallet && <p className="mt-1 text-xs font-medium text-[#3c4c1c]">Loading your balance...</p>}
             <div className="mt-4 space-y-2">
               {savedBankName && savedBankAccountNumber && !showBankAccountForm ? (
@@ -372,7 +371,7 @@ function DashboardContent() {
               <p className="text-sm font-medium text-[#a9afa9]">Crypto holdings (USDT)</p>
               <button type="button" onClick={() => setIsCryptoBalanceVisible((visible) => !visible)} aria-pressed={isCryptoBalanceVisible} className="rounded-lg bg-[#f4f3ee]/10 px-2.5 py-1 text-xs font-bold text-[#d7dbd4] transition hover:bg-[#f4f3ee]/15">{isCryptoBalanceVisible ? "Hide" : "Show"}</button>
             </div>
-            <h2 className="relative text-4xl font-bold">{wallet ? isCryptoBalanceVisible ? wallet.cryptoBalance.toFixed(4) : "••••••" : "—"} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
+            <h2 className="relative text-4xl font-bold">{wallet ? isCryptoBalanceVisible ? wallet.cryptoBalance.toFixed(4) : "••••••" : "N/A"} <span className="text-lg text-[#a9afa9]">USDT</span></h2>
             {wallet && isCryptoBalanceVisible && swapRate !== null && <p className="mt-1 text-sm text-[#bfe3ff]">≈ {preferredCurrency === "USD" ? formatUsd(wallet.cryptoBalance) : formatNaira(wallet.cryptoBalance * swapRate)}</p>}
             <p className="mt-3 text-sm leading-6 text-[#c8ccc7]">Crypto is held separately. Swap USDT to Naira first, then request a Naira payout.</p>
             {!quoteLoaded ? (
@@ -413,13 +412,12 @@ function DashboardContent() {
 
         {/* Recent Orders */}
         <div className="fexex-pop-in rounded-2xl border border-[#f4f3ee]/10 bg-[#202323] p-6 shadow-lg shadow-black/20" style={{ animationDelay: "140ms" }}>
-          <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-[#f4f3ee]">📋 Recent activity</h3>
+          <h3 className="mb-4 text-xl font-bold text-[#f4f3ee]">Recent activity</h3>
 
           {orders === null ? (
             <p role="status" className="py-8 text-center text-[#a9afa9]">Loading recent activity...</p>
           ) : orders.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
-              <span aria-hidden="true" className="fexex-float-icon text-4xl">🎁</span>
               <p className="font-semibold text-[#f4f3ee]">Nothing here yet.</p>
               <p className="text-sm text-[#a9afa9]">Your first trade is one click away.</p>
               <Link href="/trade" className="mt-2 rounded-lg bg-[#c6f65c] px-4 py-2 text-xs font-bold text-[#161818] transition hover:-translate-y-0.5 hover:bg-[#d9ff86]">Start a trade →</Link>
@@ -470,8 +468,8 @@ function DashboardContent() {
         <div className="fexex-fade-in fixed inset-0 z-50 flex items-end bg-black/70 p-4 backdrop-blur-sm sm:items-center sm:justify-center" role="dialog" aria-modal="true" aria-labelledby="trade-choice-heading">
           <div className="fexex-bounce-in w-full max-w-lg rounded-3xl border border-[#f4f3ee]/15 bg-[#202323] p-6 shadow-2xl shadow-black/60 sm:p-8">
             <p className="text-xs font-semibold tracking-[0.16em] text-[#c6f65c]">FEXEX TRADE DESK</p>
-            <h2 id="trade-choice-heading" className="mt-3 flex items-center gap-2 text-3xl font-semibold text-[#f4f3ee]">Let&apos;s get moving <span aria-hidden="true">🚀</span></h2>
-            <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Gift card or crypto — pick your route. You can switch whenever you need to.</p>
+            <h2 id="trade-choice-heading" className="mt-3 text-3xl font-semibold text-[#f4f3ee]">Let&apos;s get moving</h2>
+            <p className="mt-3 text-sm leading-6 text-[#a9afa9]">Gift card or crypto: pick your route. You can switch whenever you need to.</p>
 
             <div className="mt-7 grid gap-3">
               <Link href="/trade" className="group rounded-2xl border border-[#c6f65c]/40 bg-[#c6f65c]/10 p-5 transition hover:-translate-y-0.5 hover:border-[#c6f65c] hover:bg-[#c6f65c]/20">

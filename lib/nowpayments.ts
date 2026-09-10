@@ -45,11 +45,11 @@ export async function sendCryptoPayout(amount: number, walletAddress: string) {
       throw new Error(typeof data.message === "string" ? data.message : "Payout failed");
     }
 
-    console.log("✅ Crypto payout initiated successfully:", data);
+    console.log("Crypto payout initiated successfully:", data);
     return data;
 
   } catch (error: unknown) {
-    console.error("❌ Payout execution failed:", error);
+    console.error("Payout execution failed:", error);
     throw error;
   }
 }

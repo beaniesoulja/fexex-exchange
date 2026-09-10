@@ -12,7 +12,7 @@ export default function AdminOverviewPage() {
   return (
     <section className="fexex-pop-in mb-8" aria-labelledby="activity-heading">
       <div className="mb-4 flex flex-col gap-3 rounded-3xl border border-[#c6f65c]/20 bg-gradient-to-br from-[#253022] to-[#1a1d1d] p-5 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-xs font-semibold tracking-wide text-[#c6f65c]">LIVE DASHBOARD</p><h2 id="activity-heading" className="mt-1 text-2xl font-bold text-[#f4f3ee]">Everything needing attention, in one place. <span aria-hidden="true">📊</span></h2><p className="mt-2 text-sm text-[#a9afa9]">Review pending trades first, then manage the current customer rates.</p></div>
+        <div><p className="text-xs font-semibold tracking-wide text-[#c6f65c]">LIVE DASHBOARD</p><h2 id="activity-heading" className="mt-1 text-2xl font-bold text-[#f4f3ee]">Everything needing attention, in one place.</h2><p className="mt-2 text-sm text-[#a9afa9]">Review pending trades first, then manage the current customer rates.</p></div>
         <Link href="/admin/verification" className="rounded-xl bg-[#c6f65c] px-4 py-2.5 text-sm font-bold text-[#151817]">Open verification queue</Link>
       </div>
 

@@ -162,7 +162,7 @@ export default function GiftCardTradePage() {
           <section className="fexex-pop-in rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-6 shadow-2xl shadow-black/30 sm:p-8 lg:p-10">
             <div className="flex items-center gap-4">
               <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#f4f3ee]/10 bg-[#f4f3ee] p-2 transition hover:-rotate-6 hover:scale-105"><img src={giftCard.icon} alt={`${giftCard.name} icon`} className="h-full w-full object-contain" /></span>
-              <div><p className="text-sm font-semibold text-[#c6f65c]">NAIRA GIFT CARD PAYOUT</p><h1 className="mt-1 text-3xl font-semibold">Sell {giftCard.name} <span aria-hidden="true">🎁</span></h1></div>
+              <div><p className="text-sm font-semibold text-[#c6f65c]">NAIRA GIFT CARD PAYOUT</p><h1 className="mt-1 text-3xl font-semibold">Sell {giftCard.name}</h1></div>
             </div>
             <p className="mt-5 text-sm leading-6 text-[#a9afa9]">Submit only your {giftCard.name} details. Your payout estimate updates instantly in Naira.</p>
 

@@ -65,7 +65,7 @@ export async function notifyAdminOfTradeMessage({
   }
 
   const text = [
-    "💬 New trade room message — needs your attention",
+    "New trade room message — needs your attention",
     `Trade session ID: ${referenceId ?? orderId}`,
     `Customer: ${userEmail}`,
     "",
@@ -100,7 +100,7 @@ export async function notifyAdminOfContactMessage({ name, email, subject, messag
   }
 
   const text = [
-    "✉️ New Contact Us message",
+    "New Contact Us message",
     `From: ${name} <${email}>`,
     `Subject: ${subject}`,
     "",

@@ -88,7 +88,7 @@ function TradeSelector() {
       <div className="w-full px-3 py-5 sm:px-6 sm:py-8 lg:px-10">
         <section className="rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-6 shadow-2xl shadow-black/30 sm:p-8 lg:p-10">
           <p className={`text-sm font-semibold ${tradeType === "giftcard" ? "text-[#c6f65c]" : "text-[#bfe3ff]"}`}>{tradeType === "giftcard" ? "NAIRA GIFT CARD PAYOUTS" : "CRYPTO TO NAIRA WITHDRAWALS"}</p>
-          <h1 className="mt-2 flex items-center gap-2 text-3xl font-semibold">{tradeType === "giftcard" ? "Choose a gift card" : "Sell crypto"} <span aria-hidden="true">{tradeType === "giftcard" ? "🎁" : "💎"}</span></h1>
+          <h1 className="mt-2 text-3xl font-semibold">{tradeType === "giftcard" ? "Choose a gift card" : "Sell crypto"}</h1>
           <p className="mt-3 text-sm leading-6 text-[#a9afa9]">{tradeType === "giftcard" ? "Select the gift card you want to sell to open its dedicated trade form." : "Select the crypto you are selling, enter its USD value, and submit a Naira withdrawal request."}</p>
 
           <nav aria-label="Trade type" className="mt-6 grid grid-cols-2 rounded-xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-1">

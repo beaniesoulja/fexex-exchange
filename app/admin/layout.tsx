@@ -8,12 +8,12 @@ import { canEnterAdminArea, canManageRates, canVerifyTrades, isFullAdmin } from 
 import { AdminProvider, useAdmin } from "./admin-context";
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "Overview", icon: "📊", allowed: isFullAdmin },
-  { href: "/admin/verification", label: "Verify trades", icon: "✅", allowed: canVerifyTrades },
-  { href: "/admin/support", label: "Support", icon: "💬", allowed: isFullAdmin },
-  { href: "/admin/rates", label: "Rates & catalog", icon: "💱", allowed: canManageRates },
-  { href: "/admin/operations", label: "Users & safeguards", icon: "🛡️", allowed: isFullAdmin },
-  { href: "/admin/team", label: "Team", icon: "👥", allowed: isFullAdmin },
+  { href: "/admin", label: "Overview", allowed: isFullAdmin },
+  { href: "/admin/verification", label: "Verify trades", allowed: canVerifyTrades },
+  { href: "/admin/support", label: "Support", allowed: isFullAdmin },
+  { href: "/admin/rates", label: "Rates & catalog", allowed: canManageRates },
+  { href: "/admin/operations", label: "Users & safeguards", allowed: isFullAdmin },
+  { href: "/admin/team", label: "Team", allowed: isFullAdmin },
 ];
 
 function AdminNav() {
@@ -38,7 +38,7 @@ function AdminNav() {
             href={item.href}
             className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${isActive ? "bg-[#c6f65c] text-[#151817]" : "bg-[#202323] text-[#cdd2cb] hover:bg-[#2a302d]"}`}
           >
-            <span aria-hidden="true" className="mr-1.5">{item.icon}</span>{label}
+            {label}
           </Link>
         );
       })}
@@ -75,7 +75,7 @@ function AdminShell({ children }: { children: ReactNode }) {
             <div className="min-w-0">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c6f65c] text-lg font-black text-[#151817]">F</span>
-                <div><p className="text-xs font-bold tracking-[0.24em] text-[#c6f65c]">FEXEX CONTROL ROOM</p><h1 className="mt-1 text-2xl font-bold sm:text-3xl">Exchange operations <span aria-hidden="true">🚦</span></h1></div>
+                <div><p className="text-xs font-bold tracking-[0.24em] text-[#c6f65c]">FEXEX CONTROL ROOM</p><h1 className="mt-1 text-2xl font-bold sm:text-3xl">Exchange operations</h1></div>
               </div>
               <p className="mt-3 break-all text-sm text-[#a9afa9]">Signed in as {session?.user?.email} · {roleLabel}</p>
             </div>

@@ -108,7 +108,7 @@ export default function GiftcardCalculatorPage() {
                     <option value="">Select a card</option>
                     {giftCards.map((card) => (
                       <option key={card.code} value={card.name} disabled={!card.available}>
-                        {card.name}{card.available ? "" : " — not buying today"}
+                        {card.name}{card.available ? "" : " (not buying today)"}
                       </option>
                     ))}
                   </select>

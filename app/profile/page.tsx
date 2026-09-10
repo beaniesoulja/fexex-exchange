@@ -240,13 +240,13 @@ export default function ProfilePage() {
         </header>
 
         <section className="fexex-pop-in mt-7 rounded-2xl bg-white p-6 shadow-xl shadow-black/5 sm:p-8">
-          <h1 className="flex items-center gap-2 border-b border-[#dce0da] pb-4 text-2xl font-bold">Profile <span aria-hidden="true">✨</span></h1>
+          <h1 className="flex items-center gap-2 border-b border-[#dce0da] pb-4 text-2xl font-bold">Profile</h1>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
             <div className="flex flex-col items-center gap-4 rounded-xl bg-[#eff1ed] p-4 text-center sm:flex-row sm:text-left">
               <Image src={avatarData || "/fexex-profile-avatar.svg"} alt="Your profile photo" width={96} height={96} unoptimized={Boolean(avatarData)} className="h-24 w-24 rounded-xl bg-white p-2 object-cover transition hover:scale-105" />
               <div className="min-w-0 flex-1">
-                <p className="font-semibold">Avatar <span aria-hidden="true">📸</span></p>
+                <p className="font-semibold">Avatar</p>
                 <p className="mt-1 text-sm leading-5 text-[#5e6863]"><strong>Upload a clear photo, preferably of yourself.</strong> JPG, PNG, or WebP under 1 MB.</p>
                 <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={changeAvatar} className="sr-only" />
                 <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarSaving} className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-bold transition hover:-translate-y-0.5 hover:shadow-md">
@@ -267,7 +267,7 @@ export default function ProfilePage() {
           <div className="mt-7 grid gap-7 lg:grid-cols-2">
             <div>
               <div className="flex items-center justify-between border-b border-[#dce0da] pb-3">
-                <h2 className="text-xl font-bold">Account information <span aria-hidden="true">🪪</span></h2>
+                <h2 className="text-xl font-bold">Account information</h2>
                 <button type="button" onClick={toggleAccountEditing} className="rounded-lg bg-[#eff1ed] px-3 py-2 text-xs font-bold transition hover:-translate-y-0.5 hover:bg-[#e2e6de]">{accountEditing ? "Cancel" : "Edit"}</button>
               </div>
 
@@ -312,7 +312,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <h2 className="border-b border-[#dce0da] pb-3 text-xl font-bold">Account preferences <span aria-hidden="true">⚙️</span></h2>
+              <h2 className="border-b border-[#dce0da] pb-3 text-xl font-bold">Account preferences</h2>
               <div className="mt-4 space-y-5">
                 <fieldset>
                   <legend className="text-sm text-[#5e6863]">Name display</legend>
@@ -328,8 +328,8 @@ export default function ProfilePage() {
                 <div>
                   <FieldLabel>Preferred currency</FieldLabel>
                   <select value={preferredCurrency} onChange={(event) => setPreferredCurrency(event.target.value as ProfileData["preferredCurrency"])} className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]">
-                    <option value="NGN">🇳🇬 Nigerian Naira (NGN)</option>
-                    <option value="USD">🇺🇸 US Dollar (USD)</option>
+                    <option value="NGN">Nigerian Naira (NGN)</option>
+                    <option value="USD">US Dollar (USD)</option>
                   </select>
                   <p className="mt-1 text-xs text-[#5e6863]">Your wallet view updates to this display currency.</p>
                 </div>

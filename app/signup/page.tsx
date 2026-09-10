@@ -142,9 +142,7 @@ export default function SignupPage() {
     <main className="fexex-surface relative min-h-screen overflow-hidden bg-[#161818] px-4 py-10 text-[#f4f3ee] sm:py-16">
       <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-one" />
       <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-two" />
-      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute left-[6%] top-[12%] hidden text-4xl opacity-20 lg:block">🎁</span>
       <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute right-[8%] top-[16%] hidden text-4xl opacity-20 lg:block" style={{ animationDelay: "1.2s" }}>✦</span>
-      <span aria-hidden="true" className="fexex-float-icon pointer-events-none absolute bottom-[10%] left-[10%] hidden text-4xl opacity-20 lg:block" style={{ animationDelay: "2s" }}>💎</span>
 
       <div className="fexex-pop-in relative mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-[#f4f3ee]/10 bg-[#202323] p-7 shadow-2xl shadow-black/40 sm:p-9">
         <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#c6f65c]" />
@@ -153,7 +151,7 @@ export default function SignupPage() {
         </Link>
         {createdAccount ? (
           <section className="fexex-bounce-in mt-8" aria-labelledby="account-created-heading">
-            <p className="inline-flex rounded-full bg-[#c6f65c]/10 px-3 py-1 text-xs font-bold tracking-wide text-[#d8ff96]">🎉 ACCOUNT CREATED</p>
+            <p className="inline-flex rounded-full bg-[#c6f65c]/10 px-3 py-1 text-xs font-bold tracking-wide text-[#d8ff96]">ACCOUNT CREATED</p>
             <h1 id="account-created-heading" className="mt-4 text-3xl font-semibold">You&apos;re all set!</h1>
             <p className="mt-2 text-sm leading-6 text-[#a9afa9]">Your FEXEX account has been created. Keep these login details private.</p>
             <div className="mt-7 space-y-4 rounded-2xl border border-[#f4f3ee]/10 bg-[#1a1d1d] p-5">

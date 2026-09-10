@@ -130,7 +130,7 @@ export async function POST(req: Request) {
     }, { status: 201 });
 
   } catch (error: unknown) {
-    console.error("❌ Detailed Order creation error:", error);
+    console.error("Detailed Order creation error:", error);
     return NextResponse.json({ error: "We could not submit this gift-card trade. Please try again." }, { status: 500 });
   }
 }
