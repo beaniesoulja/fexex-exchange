@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { getClientIp, rateLimit, tooManyRequestsResponse } from "@/lib/rate-limit";
 
 const usernamePattern = /^[a-z0-9_]{3,24}$/;
 
@@ -11,6 +12,11 @@ function createSuggestions(username: string) {
 }
 
 export async function GET(request: Request) {
+  const { allowed, retryAfterSeconds } = await rateLimit(`username-check:${getClientIp(request)}`, { limit: 60, windowMs: 60 * 1000 });
+  if (!allowed) {
+    return tooManyRequestsResponse(retryAfterSeconds, "Too many checks. Please slow down.");
+  }
+
   const { searchParams } = new URL(request.url);
   const username = (searchParams.get("username") ?? "").trim().toLowerCase();
 

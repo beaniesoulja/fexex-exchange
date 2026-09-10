@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import type { Role } from "@prisma/client";
 import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import bcrypt from "bcryptjs";
 
@@ -62,12 +63,25 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing email or username and password");
         }
 
+        const identifier = credentials.email.trim().toLowerCase();
+        const requestIp = getRequestHeader(request, "x-forwarded-for")?.split(",")[0]?.trim() ?? getRequestHeader(request, "x-real-ip") ?? "unknown";
+
+        // Two windows: a tight one per (IP + account) to stop credential stuffing
+        // against a single user, and a looser one per IP to stop distributed
+        // guessing across many accounts from the same connection.
+        const [perAccount, perIp] = await Promise.all([
+          rateLimit(`login:${requestIp}:${identifier}`, { limit: 5, windowMs: 15 * 60 * 1000 }),
+          rateLimit(`login-ip:${requestIp}`, { limit: 20, windowMs: 15 * 60 * 1000 }),
+        ]);
+        if (!perAccount.allowed || !perIp.allowed) {
+          throw new Error("Too many sign-in attempts. Please try again later.");
+        }
+
         if (!(await verifyTurnstileToken(credentials.captchaToken, "login"))) {
           throw new Error("Bot verification failed");
         }
 
         // 1. Find the user in the database
-        const identifier = credentials.email.trim().toLowerCase();
         const user = await prisma.user.findFirst({
           where: {
             OR: [

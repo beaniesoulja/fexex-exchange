@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createPasswordResetToken, PASSWORD_RESET_WINDOW_MS, sendPasswordResetEmail } from "@/lib/password-reset";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, rateLimit, tooManyRequestsResponse } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -9,6 +10,11 @@ const genericResponse = { message: "If an account matches that email, you will r
 const isLocalDevelopment = process.env.NODE_ENV !== "production";
 
 export async function POST(request: Request) {
+  const { allowed, retryAfterSeconds } = await rateLimit(`password-reset:${getClientIp(request)}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+  if (!allowed) {
+    return tooManyRequestsResponse(retryAfterSeconds, "Too many reset requests from this connection. Please try again later.");
+  }
+
   let body: { email?: unknown; captchaToken?: unknown };
 
   try {

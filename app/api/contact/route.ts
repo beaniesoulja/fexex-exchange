@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { notifyAdminOfContactMessage } from "@/lib/notify";
+import { getClientIp, rateLimit, tooManyRequestsResponse } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const { allowed, retryAfterSeconds } = await rateLimit(`contact:${getClientIp(request)}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+  if (!allowed) {
+    return tooManyRequestsResponse(retryAfterSeconds, "Too many messages sent from this connection. Please try again later.");
+  }
+
   const payload = await request.json().catch(() => null);
   const name = typeof payload?.name === "string" ? payload.name.trim().slice(0, 120) : "";
   const email = typeof payload?.email === "string" ? payload.email.trim().toLowerCase() : "";

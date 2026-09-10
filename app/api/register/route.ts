@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
+import { getClientIp, rateLimit, tooManyRequestsResponse } from "@/lib/rate-limit";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MINIMUM_AGE_YEARS = 18;
@@ -24,6 +25,11 @@ function duplicateFieldResponse(field: "username" | "phoneNumber" | "email") {
 }
 
 export async function POST(request: Request) {
+  const { allowed, retryAfterSeconds } = await rateLimit(`register:${getClientIp(request)}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+  if (!allowed) {
+    return tooManyRequestsResponse(retryAfterSeconds, "Too many signup attempts from this connection. Please try again later.");
+  }
+
   let body: { username?: unknown; legalName?: unknown; dateOfBirth?: unknown; phoneCountryCode?: unknown; phoneNumber?: unknown; email?: unknown; password?: unknown; agreedToTerms?: unknown };
 
   try {
