@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import { ProfileMenu } from "@/components/profile-menu";
-import { SettingsSidebar } from "@/components/settings-sidebar";
 
 type Session = {
   id: string;
@@ -50,14 +49,12 @@ export default function Activity() {
 
   return (
     <main className="min-h-screen bg-[#f2f3ef] p-4 text-[#1d2220] sm:p-10">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-3xl">
         <header className="flex justify-between">
           <Link href="/trade" className="font-semibold text-[#4d6c16]">← Back to Trade</Link>
           <ProfileMenu username={data?.user?.username} avatarData={data?.user?.avatarData} />
         </header>
-        <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
-        <SettingsSidebar />
-        <section className="flex-1 rounded-2xl bg-white p-6 shadow-xl shadow-black/5 sm:p-8">
+        <section className="mt-6 rounded-2xl bg-white p-6 shadow-xl shadow-black/5 sm:p-8">
           <h1 className="text-2xl font-bold">Activity log</h1>
           <p className="mt-1 text-sm text-[#5e6863]">Review recent activity for better security and transparency</p>
           <div className="mt-5 flex flex-wrap gap-3">
@@ -120,7 +117,6 @@ export default function Activity() {
             </div>
           )}
         </section>
-        </div>
       </div>
     </main>
   );
