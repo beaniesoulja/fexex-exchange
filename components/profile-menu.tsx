@@ -47,7 +47,6 @@ export function ProfileMenu({ username, avatarData }: ProfileMenuProps) {
           <Link href="/verification" onClick={close} className="block rounded-xl px-3 py-2.5 text-sm text-[#d7dbd4] transition hover:bg-[#2a2e2d] hover:text-[#c6f65c]">Verification</Link>
           <Link href="/security" onClick={close} className="block rounded-xl px-3 py-2.5 text-sm text-[#d7dbd4] transition hover:bg-[#2a2e2d] hover:text-[#c6f65c]">Account security</Link>
           <Link href="/activity" onClick={close} className="block rounded-xl px-3 py-2.5 text-sm text-[#d7dbd4] transition hover:bg-[#2a2e2d] hover:text-[#c6f65c]">Activity log</Link>
-          <Link href="/wallet#settings" onClick={close} className="block rounded-xl px-3 py-2.5 text-sm text-[#d7dbd4] transition hover:bg-[#2a2e2d] hover:text-[#c6f65c]">Settings</Link>
           <Link href="/help-center" onClick={close} className="block rounded-xl px-3 py-2.5 text-sm text-[#d7dbd4] transition hover:bg-[#2a2e2d] hover:text-[#c6f65c]">Help Center</Link>
           <Link href="/about" onClick={close} className="block rounded-xl px-3 py-2.5 text-sm text-[#d7dbd4] transition hover:bg-[#2a2e2d] hover:text-[#c6f65c]">About us</Link>
         </div>

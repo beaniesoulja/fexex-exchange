@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { ProfileMenu } from "@/components/profile-menu";
+import { SettingsSidebar } from "@/components/settings-sidebar";
 
 interface ProfileData {
   email: string | null;
@@ -22,16 +23,6 @@ interface ProfileData {
   nameDisplay: "INITIALS" | "FULL_NAME" | "USERNAME";
   preferredCurrency: "USD" | "NGN";
   timezone: string;
-}
-
-const TIMEZONES = [
-  "Africa/Lagos", "Africa/Accra", "Africa/Cairo", "Africa/Johannesburg", "Europe/London", "Europe/Paris",
-  "America/New_York", "America/Chicago", "America/Los_Angeles", "Asia/Dubai", "Asia/Kolkata", "Asia/Singapore",
-  "Asia/Tokyo", "Australia/Sydney",
-];
-
-function FieldLabel({ children }: { children: ReactNode }) {
-  return <label className="mb-1 block text-sm text-[#5e6863]">{children}</label>;
 }
 
 function toDateDisplayValue(value: string | null | undefined) {
@@ -65,8 +56,6 @@ export default function ProfilePage() {
   const [nameDisplay, setNameDisplay] = useState<ProfileData["nameDisplay"]>("USERNAME");
   const [preferredCurrency, setPreferredCurrency] = useState<ProfileData["preferredCurrency"]>("NGN");
   const [timezone, setTimezone] = useState("Africa/Lagos");
-  const [accountEditing, setAccountEditing] = useState(false);
-  const [bioEditing, setBioEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [usernameMessage, setUsernameMessage] = useState("");
@@ -123,7 +112,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const candidate = username.trim().toLowerCase();
-    if (!accountEditing || !candidate || candidate === profile?.username) return;
+    if (!candidate || candidate === profile?.username) { setUsernameMessage(""); return; }
     const timer = window.setTimeout(() => {
       void fetch(`/api/username-availability?username=${encodeURIComponent(candidate)}`)
         .then(async (response) => response.ok ? response.json() : null)
@@ -138,7 +127,7 @@ export default function ProfilePage() {
         .catch(() => setUsernameMessage(""));
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [accountEditing, username, profile?.username]);
+  }, [username, profile?.username]);
 
   const saveProfile = async () => {
     setSaving(true);
@@ -165,10 +154,8 @@ export default function ProfilePage() {
       setNameDisplay(data.nameDisplay);
       setPreferredCurrency(data.preferredCurrency);
       setTimezone(data.timezone);
-      setAccountEditing(false);
-      setBioEditing(false);
       setUsernameMessage("");
-      setMessage("Profile saved.");
+      setMessage("Saved.");
       await update();
     } catch {
       setMessage("A network error occurred. Please try again.");
@@ -215,21 +202,13 @@ export default function ProfilePage() {
     }
   };
 
-  const toggleAccountEditing = () => {
-    if (accountEditing && profile) applyProfile(profile);
-    setAccountEditing((value) => !value);
-    setUsernameMessage("");
-  };
-
   const avatarData = profile?.avatarData ?? session?.user?.avatarData;
   const dateOfBirthLocked = Boolean(profile?.dateOfBirth && profile?.dateOfBirthChangedAt);
   const nextUsernameChangeAt = profile?.usernameChangedAt ? new Date(new Date(profile.usernameChangedAt).getTime() + 30 * 24 * 60 * 60 * 1000) : null;
   const nextUsernameChangeDate = nextUsernameChangeAt ? toDateDisplayValue(nextUsernameChangeAt.toISOString()) : null;
+  const usernameLocked = Boolean(nextUsernameChangeAt && nextUsernameChangeAt.getTime() > Date.now());
   const legalName = profile?.legalName ?? session?.user?.legalName ?? "";
   const accountDetailsLoading = status === "authenticated" && !profile && !profileLoadError;
-  const legalNameParts = (legalName || "Your name").trim().split(/\s+/);
-  const initialsExample = `${legalNameParts[0]}${legalNameParts.length > 1 ? ` ${legalNameParts.at(-1)?.[0]}.` : ""}`;
-  const fullNameExample = legalName || "Your full name";
 
   return (
     <main className="min-h-screen bg-[#f2f3ef] p-4 text-[#1d2220] sm:p-8">
@@ -239,113 +218,128 @@ export default function ProfilePage() {
           <ProfileMenu username={profile?.username ?? session?.user?.username} avatarData={avatarData} />
         </header>
 
-        <section className="fexex-pop-in mt-7 rounded-2xl bg-white p-6 shadow-xl shadow-black/5 sm:p-8">
-          <h1 className="flex items-center gap-2 border-b border-[#dce0da] pb-4 text-2xl font-bold">Profile</h1>
+        {profileLoadError && (
+          <div role="alert" className="mt-5 flex flex-wrap items-center gap-2 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <span>{profileLoadError}</span>
+            <button type="button" onClick={() => { setProfileLoadError(""); setProfileLoadAttempt((attempt) => attempt + 1); }} className="font-bold underline underline-offset-2">Try again</button>
+          </div>
+        )}
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            <div className="flex flex-col items-center gap-4 rounded-xl bg-[#eff1ed] p-4 text-center sm:flex-row sm:text-left">
-              <Image src={avatarData || "/fexex-profile-avatar.svg"} alt="Your profile photo" width={96} height={96} unoptimized={Boolean(avatarData)} className="h-24 w-24 rounded-xl bg-white p-2 object-cover transition hover:scale-105" />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">Avatar</p>
-                <p className="mt-1 text-sm leading-5 text-[#5e6863]"><strong>Upload a clear photo, preferably of yourself.</strong> JPG, PNG, or WebP under 1 MB.</p>
+        <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
+          <SettingsSidebar />
+
+          <div className="grid flex-1 gap-6 lg:grid-cols-[1fr_300px]">
+            <div className="space-y-6">
+              {/* Phone number */}
+              <section className="fexex-pop-in rounded-2xl bg-white p-6 shadow-xl shadow-black/5">
+                <h2 className="flex items-center gap-2 text-lg font-bold"><span className="h-4 w-1 rounded-full bg-[#00b878]" />Phone number</h2>
+
+                {!phoneNumber && (
+                  <div className="mt-4 flex items-start gap-3 rounded-xl bg-[#fdf3d8] p-4 text-sm text-[#7a5b0a]">
+                    <span aria-hidden="true" className="mt-0.5">⚠</span>
+                    <p>Add a phone number so support can reach you about your trades. Verification codes are not required yet.</p>
+                  </div>
+                )}
+
+                <div className="mt-4 flex gap-2">
+                  <input value={phoneCountryCode} onChange={(event) => setPhoneCountryCode(`+${event.target.value.replace(/\D/g, "").slice(0, 3)}`)} inputMode="numeric" className="w-20 rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]" />
+                  <input value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Please enter" inputMode="numeric" minLength={10} maxLength={10} className="min-w-0 flex-1 rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none placeholder:font-normal placeholder:text-[#7e8782] focus:ring-2 focus:ring-[#c6f65c]" />
+                </div>
+                <p className="mt-1 text-xs text-[#5e6863]">Enter exactly 10 digits after the country code.</p>
+
+                <button type="button" onClick={saveProfile} disabled={saving} className="mt-4 w-full rounded-xl bg-[#00b878] px-4 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:translate-y-0 disabled:opacity-60 sm:w-auto">{saving ? "Saving..." : "Save"}</button>
+              </section>
+
+              {/* Message / basic details */}
+              <section className="fexex-pop-in rounded-2xl bg-white p-6 shadow-xl shadow-black/5">
+                <h2 className="flex items-center gap-2 text-lg font-bold"><span className="h-4 w-1 rounded-full bg-[#00b878]" />Message</h2>
+
+                <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm text-[#5e6863]">Name</label>
+                    <div className="flex gap-2">
+                      <input value={username} readOnly={usernameLocked} onChange={(event) => setUsername(event.target.value.replace(/\s/g, "").toLowerCase())} maxLength={24} className="min-w-0 flex-1 rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none read-only:text-[#7e8782] focus:ring-2 focus:ring-[#c6f65c]" />
+                      <button type="button" onClick={saveProfile} disabled={saving || usernameLocked || !username} className="shrink-0 rounded-lg bg-[#00b878] px-4 py-2.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:shadow-md disabled:translate-y-0 disabled:opacity-50">Confirm</button>
+                    </div>
+                    {usernameMessage && <p className={`mt-1 text-xs ${usernameMessage.includes("available") ? "text-emerald-700" : "text-rose-700"}`}>{usernameMessage}</p>}
+                    <p className="mt-1 text-xs text-[#00b878]">{usernameLocked ? `Your name is your unique identification — you can change it again after ${nextUsernameChangeDate}.` : "Your name is your unique identification and can only be changed once every 30 days."}</p>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm text-[#5e6863]">Preferred currency</label>
+                    <select value={preferredCurrency} onChange={(event) => setPreferredCurrency(event.target.value as ProfileData["preferredCurrency"])} className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]">
+                      <option value="NGN">Nigerian Naira (NGN)</option>
+                      <option value="USD">US Dollar (USD)</option>
+                    </select>
+                    <p className="mt-1 text-xs text-[#5e6863]">Your wallet view updates to this display currency.</p>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <label className="mb-1 block text-sm text-[#5e6863]">Brief Bio</label>
+                  <textarea value={bio} onChange={(event) => setBio(event.target.value.slice(0, 180))} placeholder="Brief will display on your user center" className="h-28 w-full resize-none rounded-xl bg-[#eff1ed] p-3 text-sm outline-none placeholder:text-[#7e8782] focus:ring-2 focus:ring-[#c6f65c]" />
+                  <p className="mt-1 text-xs text-[#5e6863]">180 characters at most · {bio.length}/180</p>
+                </div>
+
+                <button type="button" onClick={saveProfile} disabled={saving} className="mt-5 w-full rounded-xl bg-[#00b878] px-4 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:translate-y-0 disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
+              </section>
+
+              {/* Additional account details kept from the previous layout */}
+              <section className="fexex-pop-in rounded-2xl bg-white p-6 shadow-xl shadow-black/5">
+                <h2 className="flex items-center gap-2 text-lg font-bold"><span className="h-4 w-1 rounded-full bg-[#00b878]" />Additional details</h2>
+                <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm text-[#5e6863]">Legal name</label>
+                    <div className="rounded-lg bg-[#e0e0e0] px-3 py-2.5 font-semibold">{legalName || (accountDetailsLoading ? "Loading…" : "Not provided")}</div>
+                    <p className="mt-1 text-xs text-[#5e6863]">Your legal name cannot be edited here.</p>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm text-[#5e6863]">Email</label>
+                    <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]" />
+                    <p className="mt-1 text-xs text-[#5e6863]">Email verification will be required when it is introduced.</p>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm text-[#5e6863]">Date of birth</label>
+                    {!dateOfBirthLocked ? (
+                      <input type="text" value={dateOfBirth} onChange={(event) => setDateOfBirth(formatDateField(event.target.value))} inputMode="numeric" maxLength={10} placeholder="DD-MM-YYYY" className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none placeholder:font-normal placeholder:text-[#7e8782] focus:ring-2 focus:ring-[#c6f65c]" />
+                    ) : (
+                      <div className="rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold">{formatDateOfBirth(profile?.dateOfBirth)}</div>
+                    )}
+                    <p className="mt-1 text-xs text-[#5e6863]">{dateOfBirthLocked ? "Locked after your first change." : "You can update this date once."}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-2 block text-sm text-[#5e6863]">Name shown on trade rooms and receipts</label>
+                    <div className="flex flex-wrap gap-4">
+                      {[["INITIALS", "First name + last initial"], ["FULL_NAME", "Full name"], ["USERNAME", "Hide full name"]].map(([value, label]) => (
+                        <label key={value} className="flex cursor-pointer items-center gap-2 text-sm">
+                          <input type="radio" name="name-display" value={value} checked={nameDisplay === value} onChange={() => setNameDisplay(value as ProfileData["nameDisplay"])} className="h-4 w-4 accent-[#00b878]" />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <button type="button" onClick={saveProfile} disabled={saving} className="mt-5 w-full rounded-xl bg-[#00b878] px-4 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:translate-y-0 disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
+              </section>
+
+              {message && <p role="status" className="rounded-xl bg-[#eff1ed] px-4 py-3 text-sm font-medium text-[#4d6c16]">{message}</p>}
+            </div>
+
+            {/* Profile card */}
+            <div>
+              <section className="fexex-pop-in rounded-2xl bg-white p-6 text-center shadow-xl shadow-black/5">
+                <h2 className="flex items-center gap-2 text-left text-lg font-bold"><span className="h-4 w-1 rounded-full bg-[#00b878]" />Profile</h2>
+                <Image src={avatarData || "/fexex-profile-avatar.svg"} alt="Your profile photo" width={96} height={96} unoptimized={Boolean(avatarData)} className="mx-auto mt-5 h-24 w-24 rounded-full bg-[#eff1ed] object-cover" />
                 <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={changeAvatar} className="sr-only" />
-                <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarSaving} className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-bold transition hover:-translate-y-0.5 hover:shadow-md">
-                  {avatarSaving ? "Saving..." : avatarData ? "Change image" : "Upload image"}
+                <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarSaving} className="mt-3 rounded-lg bg-[#eff1ed] px-3 py-2 text-xs font-bold transition hover:-translate-y-0.5 hover:shadow-md">
+                  {avatarSaving ? "Saving..." : avatarData ? "Change photo" : "Upload photo"}
                 </button>
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-[#eff1ed] p-4">
-              <textarea value={bio} onChange={(event) => setBio(event.target.value.slice(0, 180))} readOnly={!bioEditing} placeholder="Your bio will appear on your public profile" className={`h-28 w-full resize-none rounded-xl bg-white p-3 text-sm outline-none ${bioEditing ? "ring-2 ring-[#c6f65c]" : "text-[#5e6863]"}`} />
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="text-xs text-[#5e6863]">Maximum 180 characters · {bio.length}/180</p>
-                {bioEditing ? <button type="button" onClick={saveProfile} disabled={saving} className="rounded-lg bg-[#c6f65c] px-3 py-2 text-xs font-bold text-[#161818] transition hover:-translate-y-0.5 hover:shadow-md">{saving ? "Saving..." : "Save"}</button> : <button type="button" onClick={() => setBioEditing(true)} className="rounded-lg bg-[#00b878] px-3 py-2 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:shadow-md">Edit</button>}
-              </div>
+                <p className="mt-4 text-base font-bold">{profile?.username ? `@${profile.username}` : legalName || "—"}</p>
+                <p className="mt-1 truncate text-sm text-[#5e6863]">{email || "No email on file"}</p>
+              </section>
             </div>
           </div>
-
-          <div className="mt-7 grid gap-7 lg:grid-cols-2">
-            <div>
-              <div className="flex items-center justify-between border-b border-[#dce0da] pb-3">
-                <h2 className="text-xl font-bold">Account information</h2>
-                <button type="button" onClick={toggleAccountEditing} className="rounded-lg bg-[#eff1ed] px-3 py-2 text-xs font-bold transition hover:-translate-y-0.5 hover:bg-[#e2e6de]">{accountEditing ? "Cancel" : "Edit"}</button>
-              </div>
-
-              <div className="mt-4 space-y-4">
-                <div>
-                  <FieldLabel>Name</FieldLabel>
-                  <div className="rounded-lg bg-[#e0e0e0] px-3 py-2.5 font-semibold">{legalName || (accountDetailsLoading ? "Loading account details…" : "Name unavailable")}</div>
-                  <p className="mt-1 text-xs text-[#5e6863]">Your legal name cannot be edited here.</p>
-                  {profileLoadError && <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 text-xs text-rose-700"><span>{profileLoadError}</span><button type="button" onClick={() => { setProfileLoadError(""); setProfileLoadAttempt((attempt) => attempt + 1); }} className="font-bold underline underline-offset-2">Try again</button></div>}
-                </div>
-                <div>
-                  <FieldLabel>Username</FieldLabel>
-                  <input value={username} readOnly={!accountEditing} onChange={(event) => { setUsername(event.target.value.replace(/\s/g, "").toLowerCase()); setUsernameMessage(""); }} maxLength={24} className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none read-only:text-[#1d2220] focus:ring-2 focus:ring-[#c6f65c]" />
-                  {usernameMessage && <p className={`mt-1 text-xs ${usernameMessage.includes("available") ? "text-emerald-700" : "text-rose-700"}`}>{usernameMessage}</p>}
-                  <p className="mt-1 text-xs text-[#5e6863]">{nextUsernameChangeDate ? `You can change your username again after ${nextUsernameChangeDate}.` : "You can change your username once every 30 days."}</p>
-                </div>
-                <div>
-                  <FieldLabel>Email</FieldLabel>
-                  <input type="email" value={email} readOnly={!accountEditing} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]" />
-                  <p className="mt-1 text-xs text-[#5e6863]">Email verification will be required when it is introduced.</p>
-                </div>
-                <div>
-                  <FieldLabel>Phone number</FieldLabel>
-                  <div className="flex gap-2">
-                    <input value={phoneCountryCode} readOnly={!accountEditing} onChange={(event) => setPhoneCountryCode(`+${event.target.value.replace(/\D/g, "").slice(0, 3)}`)} inputMode="numeric" className="w-20 rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]" />
-                    <input value={phoneNumber} readOnly={!accountEditing} onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="numeric" minLength={10} maxLength={10} className="min-w-0 flex-1 rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]" />
-                  </div>
-                  <p className="mt-1 text-xs text-[#5e6863]">Enter exactly 10 digits after the country code.</p>
-                </div>
-                <div>
-                  <FieldLabel>Date of birth</FieldLabel>
-                  {!dateOfBirthLocked ? (
-                    <input type="text" value={dateOfBirth} onChange={(event) => setDateOfBirth(formatDateField(event.target.value))} inputMode="numeric" maxLength={10} placeholder="DD-MM-YYYY" className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none placeholder:font-normal placeholder:text-[#7e8782] focus:ring-2 focus:ring-[#c6f65c]" />
-                  ) : (
-                    <div className="rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold">{formatDateOfBirth(profile?.dateOfBirth)}</div>
-                  )}
-                  <p className="mt-1 text-xs text-[#5e6863]">{dateOfBirthLocked ? "Your date of birth has already been changed once and is locked." : "Use DD-MM-YYYY, for example 29-08-1995. You can update this date once."}</p>
-                  {!dateOfBirthLocked && !accountEditing && <button type="button" onClick={saveProfile} disabled={saving || !dateOfBirth} className="mt-2 rounded-lg bg-[#00b878] px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{saving ? "Saving..." : "Save date of birth"}</button>}
-                </div>
-                {accountEditing && <button type="button" onClick={saveProfile} disabled={saving} className="w-full rounded-xl bg-[#00b878] px-4 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:translate-y-0 disabled:opacity-60">{saving ? "Saving account..." : "Save account changes"}</button>}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="border-b border-[#dce0da] pb-3 text-xl font-bold">Account preferences</h2>
-              <div className="mt-4 space-y-5">
-                <fieldset>
-                  <legend className="text-sm text-[#5e6863]">Name display</legend>
-                  <div className="mt-2 space-y-2">
-                    {[["INITIALS", "Show first name and last name initial"], ["FULL_NAME", "Show full name"], ["USERNAME", "Hide full name"]].map(([value, label]) => (
-                      <label key={value} className="flex cursor-pointer items-center gap-2 text-sm">
-                        <input type="radio" name="name-display" value={value} checked={nameDisplay === value} onChange={() => setNameDisplay(value as ProfileData["nameDisplay"])} className="h-4 w-4 accent-[#00b878]" />
-                        {label}<span className="text-[#5e6863]">{value === "INITIALS" ? `(${initialsExample})` : value === "FULL_NAME" ? `(${fullNameExample})` : "(your username)"}</span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                <div>
-                  <FieldLabel>Preferred currency</FieldLabel>
-                  <select value={preferredCurrency} onChange={(event) => setPreferredCurrency(event.target.value as ProfileData["preferredCurrency"])} className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]">
-                    <option value="NGN">Nigerian Naira (NGN)</option>
-                    <option value="USD">US Dollar (USD)</option>
-                  </select>
-                  <p className="mt-1 text-xs text-[#5e6863]">Your wallet view updates to this display currency.</p>
-                </div>
-                <div>
-                  <FieldLabel>Timezone</FieldLabel>
-                  <input value={timezone} onChange={(event) => setTimezone(event.target.value)} list="fexex-timezones" className="w-full rounded-lg bg-[#eff1ed] px-3 py-2.5 font-semibold outline-none focus:ring-2 focus:ring-[#c6f65c]" />
-                  <datalist id="fexex-timezones">{TIMEZONES.map((item) => <option key={item} value={item} />)}</datalist>
-                  <p className="mt-1 text-xs text-[#5e6863]">Default: West Africa Time, Nigeria (Africa/Lagos).</p>
-                </div>
-                <button type="button" onClick={saveProfile} disabled={saving} className="w-full rounded-xl bg-[#00b878] px-4 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:translate-y-0 disabled:opacity-60">{saving ? "Saving profile..." : "Save profile preferences"}</button>
-              </div>
-            </div>
-          </div>
-
-          {message && <p role="status" className="mt-5 rounded-xl bg-[#eff1ed] px-4 py-3 text-sm font-medium text-[#4d6c16]">{message}</p>}
-        </section>
+        </div>
       </div>
     </main>
   );
