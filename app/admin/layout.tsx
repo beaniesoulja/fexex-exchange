@@ -10,6 +10,7 @@ import { AdminProvider, useAdmin } from "./admin-context";
 const NAV_ITEMS = [
   { href: "/admin", label: "Overview", allowed: isFullAdmin },
   { href: "/admin/verification", label: "Verify trades", allowed: canVerifyTrades },
+  { href: "/admin/kyc", label: "KYC review", allowed: canVerifyTrades },
   { href: "/admin/support", label: "Support", allowed: isFullAdmin },
   { href: "/admin/rates", label: "Rates & catalog", allowed: canManageRates },
   { href: "/admin/operations", label: "Users & safeguards", allowed: isFullAdmin },

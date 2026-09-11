@@ -4,7 +4,10 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 import { withAdminScope } from "@/lib/db-context";
+import { createEmailVerificationToken, EMAIL_VERIFICATION_WINDOW_MS, sendVerificationEmail } from "@/lib/email-verification";
 import { getClientIp, rateLimit, tooManyRequestsResponse } from "@/lib/rate-limit";
+
+const isLocalDevelopment = process.env.NODE_ENV !== "production";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MINIMUM_AGE_YEARS = 18;
@@ -113,7 +116,7 @@ export async function POST(request: Request) {
 
     // No signed-in user exists yet to scope this to — creating an account
     // (and its wallet) is a bootstrap operation, not access to anyone's data.
-    await withAdminScope((tx) => tx.user.create({
+    const createdUser = await withAdminScope((tx) => tx.user.create({
       data: {
         email,
         username,
@@ -129,6 +132,19 @@ export async function POST(request: Request) {
         },
       },
     }));
+
+    // A failed verification email should never block account creation —
+    // the user can always resend it from the Verification page.
+    try {
+      const { token, tokenHash } = createEmailVerificationToken();
+      const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_WINDOW_MS);
+      const origin = process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? new URL(request.url).origin;
+      const verifyUrl = `${origin}/verify-email?token=${encodeURIComponent(token)}`;
+      await prisma.emailVerificationToken.create({ data: { userId: createdUser.id, tokenHash, expiresAt } });
+      if (!isLocalDevelopment) await sendVerificationEmail(email, verifyUrl);
+    } catch (error) {
+      console.error("Could not send the initial verification email:", error);
+    }
 
     return NextResponse.json({ message: "Account created." }, { status: 201 });
   } catch (error) {

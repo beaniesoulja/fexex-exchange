@@ -79,6 +79,7 @@ model User {
   role                Role     @default(USER)
   canVerifyTrades     Boolean  @default(false)
   canManageRates      Boolean  @default(false)
+  emailVerified       DateTime?
   kycVerified         Boolean  @default(false)
   marketplaceBuyerApproved Boolean @default(false)
   bio                 String?  @db.VarChar(180)
@@ -101,9 +102,46 @@ model User {
   loginSessions LoginSession[]
   profileAudits ProfileAudit[]
   passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  kycSubmissions KycSubmission[]
   mailingListSubscriber MailingListSubscriber?
 
   @@unique([phoneCountryCode, phoneNumber])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model KycSubmission {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentType   String
+  documentImage  String
+  selfieImage    String
+  status         KycStatus @default(PENDING)
+  reviewNote     String?
+  reviewedAt     DateTime?
+  reviewedById   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
 }
 
 model MailingListSubscriber {

@@ -118,3 +118,36 @@ export async function notifyAdminOfContactMessage({ name, email, subject, messag
   }
 }
 import { formatNaira } from "@/lib/currency";
+
+type AdminKycNotification = {
+  userEmail: string;
+  documentType: string;
+  submissionId: string;
+};
+
+export async function notifyAdminOfKycSubmission({ userEmail, documentType, submissionId }: AdminKycNotification) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!botToken || !chatId) {
+    console.warn("Admin notification skipped: Telegram is not configured.");
+    return;
+  }
+
+  const text = [
+    "New KYC verification submission — needs review",
+    `Customer: ${userEmail}`,
+    `Document type: ${documentType}`,
+    `Submission ID: ${submissionId}`,
+  ].join("\n");
+
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Telegram notification failed with status ${response.status}`);
+  }
+}

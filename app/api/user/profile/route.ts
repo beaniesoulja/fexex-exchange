@@ -49,6 +49,7 @@ export async function GET(request: Request) {
           phoneCountryCode: true,
           phoneNumber: true,
           kycVerified: true,
+          emailVerified: true,
           cryptoWalletAddress: true,
           bankName: true,
           bankAccountNumber: true,
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      return NextResponse.json(userData, { status: 200 });
+      return NextResponse.json(userData, { status: 200, headers: { "Cache-Control": "private, no-store" } });
     }
 
     // Dashboard consumers need the wallet, orders, and swaps in addition to the account.
@@ -100,7 +101,7 @@ export async function GET(request: Request) {
       wallet: userData.wallet || { fiatBalance: 0, cryptoBalance: 0 },
       orders: userData.orders,
       swaps: userData.swaps,
-    }, { status: 200 });
+    }, { status: 200, headers: { "Cache-Control": "private, no-store" } });
 
   } catch (error) {
     console.error("Error fetching user profile:", error);

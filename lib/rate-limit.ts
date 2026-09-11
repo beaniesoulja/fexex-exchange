@@ -73,6 +73,7 @@ export const RATE_LIMITS = {
 export const DAILY_QUOTAS = {
   trades: { limit: 20, windowMs: DAY },
   tickets: { limit: 10, windowMs: DAY },
+  kyc: { limit: 3, windowMs: DAY },
 } as const;
 
 /**
