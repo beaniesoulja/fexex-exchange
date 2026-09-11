@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { sendCryptoPayout } from '@/lib/nowpayments';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { withAdminScope } from '@/lib/db-context';
 import { getUsdToNairaRate } from '@/lib/pricing';
 import { canVerifyTrades } from '@/lib/admin-access';
 import { formatNaira, formatUsd } from '@/lib/currency';
@@ -18,13 +18,13 @@ export async function GET() {
     const limited = await enforceRateLimit(`admin-orders-get:${session.user.id}`, RATE_LIMITS.authedReadModerate);
     if (limited) return limited;
 
-    const pendingOrders = await prisma.order.findMany({
+    const pendingOrders = await withAdminScope((tx) => tx.order.findMany({
       where: { status: 'PENDING' },
-      include: { 
+      include: {
         user: { select: { email: true } } // Include user email so you know who sent it
       },
       orderBy: { createdAt: 'desc' } // Newest first
-    });
+    }));
 
     return NextResponse.json(pendingOrders, { status: 200 });
   } catch (error) {
@@ -53,10 +53,10 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Add a clear failure description (up to 800 characters)." }, { status: 400 });
     }
 
-    const order = await prisma.order.findUnique({ 
+    const order = await withAdminScope((tx) => tx.order.findUnique({
       where: { id: orderId },
       include: { user: { select: { id: true, cryptoWalletAddress: true } } },
-    });
+    }));
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -88,7 +88,7 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: isPartial ? "Add a note explaining the adjusted payout (e.g. which card was invalid)." : "Add a clear failure description (up to 800 characters)." }, { status: 400 });
       }
 
-      const result = await prisma.order.updateMany({
+      const result = await withAdminScope((tx) => tx.order.updateMany({
         where: { id: orderId, status: "PENDING" },
         data: {
           status: isSuccessful ? "COMPLETED" : "REJECTED",
@@ -96,10 +96,10 @@ export async function PATCH(req: Request) {
           resultDescription: isSuccessful ? (isPartial ? resultDescription : null) : resultDescription,
           resolvedAt: new Date(),
         },
-      });
+      }));
       if (result.count !== 1) return NextResponse.json({ error: "This order has already been processed." }, { status: 409 });
 
-      await prisma.tradeMessage.create({
+      await withAdminScope((tx) => tx.tradeMessage.create({
         data: {
           orderId,
           senderId: session.user.id,
@@ -109,7 +109,7 @@ export async function PATCH(req: Request) {
               : "Admin result: Your gift-card trade was successful. No further action is needed.")
             : `Admin result: Your gift-card trade failed. Reason: ${resultDescription}`,
         },
-      });
+      }));
       return NextResponse.json({
         message: isSuccessful
           ? (isPartial ? "Gift-card trade marked successful with an adjusted payout." : "Gift-card trade marked successful.")
@@ -119,26 +119,27 @@ export async function PATCH(req: Request) {
 
     if (action === 'APPROVE') {
       if (order.type === 'SELL_CRYPTO') {
-        const approvedOrder = await prisma.order.updateMany({
+        const approvedOrder = await withAdminScope((tx) => tx.order.updateMany({
           where: { id: orderId, status: 'PENDING' },
           data: { status: 'COMPLETED', resultDescription: null, resolvedAt: new Date() },
-        });
+        }));
         if (approvedOrder.count !== 1) {
           return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });
         }
-        await prisma.tradeMessage.create({
+        await withAdminScope((tx) => tx.tradeMessage.create({
           data: {
             orderId,
             senderId: session.user.id,
             body: "Admin result: Your crypto withdrawal was approved. Your saved bank account will be paid.",
           },
-        });
+        }));
         return NextResponse.json({ message: 'Crypto withdrawal approved. Pay the saved default bank account.' }, { status: 200 });
       }
 
       if (!order.user.cryptoWalletAddress || order.user.cryptoWalletAddress.length < 10) {
         return NextResponse.json({ error: 'The user has not saved a valid USDT TRC20 payout wallet.' }, { status: 400 });
       }
+      const walletAddress = order.user.cryptoWalletAddress;
 
       const nairaPerUsdt = await getUsdToNairaRate();
 
@@ -148,41 +149,41 @@ export async function PATCH(req: Request) {
       }
 
       // Claim the order before calling the provider so it cannot be approved twice.
-      const claimedOrder = await prisma.order.updateMany({
+      const claimedOrder = await withAdminScope((tx) => tx.order.updateMany({
         where: { id: orderId, status: 'PENDING' },
         data: { status: 'PROCESSING' },
-      });
+      }));
       if (claimedOrder.count !== 1) {
         return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });
       }
 
       try {
-        const providerPayout = await sendCryptoPayout(usdtAmount, order.user.cryptoWalletAddress);
+        const providerPayout = await sendCryptoPayout(usdtAmount, walletAddress);
         const providerReference = typeof providerPayout.id === 'string' || typeof providerPayout.id === 'number'
           ? String(providerPayout.id)
           : typeof providerPayout.batch_id === 'string' || typeof providerPayout.batch_id === 'number'
             ? String(providerPayout.batch_id)
             : null;
 
-        await prisma.$transaction([
-          prisma.payout.create({
+        await withAdminScope(async (tx) => {
+          await tx.payout.create({
             data: {
               orderId: order.id,
               userId: order.user.id,
-              walletAddress: order.user.cryptoWalletAddress,
+              walletAddress,
               nairaAmount: order.totalValue,
               cryptoAmount: usdtAmount,
               exchangeRate: nairaPerUsdt,
               providerReference,
               providerResponse: JSON.stringify(providerPayout),
             },
-          }),
-          prisma.order.update({
+          });
+          await tx.order.update({
             where: { id: orderId },
             // The order is settled only after NOWPayments sends a verified finished IPN.
             data: { status: 'PROCESSING' },
-          }),
-        ]);
+          });
+        });
       } catch (error) {
         console.error('Payout initiation failed. Order remains PROCESSING for manual review:', error);
         return NextResponse.json(
@@ -195,14 +196,14 @@ export async function PATCH(req: Request) {
     } 
     
     if (action === 'REJECT') {
-      const rejectedOrder = await prisma.order.updateMany({
+      const rejectedOrder = await withAdminScope((tx) => tx.order.updateMany({
         where: { id: orderId, status: 'PENDING' },
         data: { status: 'REJECTED', resultDescription, resolvedAt: new Date() },
-      });
+      }));
       if (rejectedOrder.count !== 1) {
         return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });
       }
-      await prisma.tradeMessage.create({ data: { orderId, senderId: session.user.id, body: `Admin result: This trade failed. Reason: ${resultDescription}` } });
+      await withAdminScope((tx) => tx.tradeMessage.create({ data: { orderId, senderId: session.user.id, body: `Admin result: This trade failed. Reason: ${resultDescription}` } }));
       return NextResponse.json({ message: "Order rejected." }, { status: 200 });
     }
 

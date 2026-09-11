@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withScope } from "@/lib/db-context";
 import { validateImageDataUrl } from "@/lib/image-upload";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -12,11 +12,12 @@ function ticketDisplayName(user: { username: string | null }) {
 async function access(ticketId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  const ticket = await prisma.supportTicket.findUnique({
+  const isAdmin = session.user.role === "ADMIN";
+  const ticket = await withScope(session, (tx) => tx.supportTicket.findUnique({
     where: { id: ticketId },
     select: { id: true, userId: true, subject: true, status: true, createdAt: true, updatedAt: true, user: { select: { email: true } } },
-  });
-  if (!ticket || (ticket.userId !== session.user.id && session.user.role !== "ADMIN")) {
+  }));
+  if (!ticket || (ticket.userId !== session.user.id && !isAdmin)) {
     return { error: NextResponse.json({ error: "Support ticket not found" }, { status: 404 }) };
   }
   return { session, ticket };
@@ -29,12 +30,12 @@ export async function GET(_request: Request, context: RouteContext<"/api/support
   const limited = await enforceRateLimit(`ticket-messages-get:${permitted.session!.user.id}`, RATE_LIMITS.authedReadFast);
   if (limited) return limited;
 
-  const messages = (await prisma.supportMessage.findMany({
+  const messages = (await withScope(permitted.session!, (tx) => tx.supportMessage.findMany({
     where: { ticketId },
     include: { sender: { select: { username: true, role: true } } },
     orderBy: { createdAt: "desc" },
     take: 200,
-  })).reverse();
+  }))).reverse();
 
   const visibleMessages = messages.map(({ sender, ...message }) => ({
     ...message,
@@ -63,8 +64,8 @@ export async function POST(request: Request, context: RouteContext<"/api/support
     return NextResponse.json({ error: "Add a message or an image. Messages can be up to 1000 characters." }, { status: 400 });
   }
 
-  const [saved] = await prisma.$transaction([
-    prisma.supportMessage.create({
+  const saved = await withScope(permitted.session!, async (tx) => {
+    const created = await tx.supportMessage.create({
       data: {
         ticketId,
         senderId: permitted.session!.user.id,
@@ -72,16 +73,17 @@ export async function POST(request: Request, context: RouteContext<"/api/support
         ...(imageData ? { imageData } : {}),
       },
       include: { sender: { select: { username: true, role: true } } },
-    }),
-    prisma.supportTicket.update({
+    });
+    await tx.supportTicket.update({
       where: { id: ticketId },
       data: {
         updatedAt: new Date(),
         // A customer reply reopens a ticket an admin had closed.
         ...(permitted.session!.user.role !== "ADMIN" && permitted.ticket!.status === "CLOSED" ? { status: "OPEN" } : {}),
       },
-    }),
-  ]);
+    });
+    return created;
+  });
 
   return NextResponse.json({
     ...saved,

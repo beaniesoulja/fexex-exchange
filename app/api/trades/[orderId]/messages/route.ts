@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withScope } from "@/lib/db-context";
 import { notifyAdminOfTradeMessage } from "@/lib/notify";
 import { validateImageDataUrl } from "@/lib/image-upload";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -13,8 +13,9 @@ function tradeDisplayName(user: { username: string | null }) {
 async function access(orderId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, referenceId: true, userId: true, giftCardBrand: true, cryptoAsset: true, totalValue: true, status: true, resultDescription: true, resolvedAt: true } });
-  if (!order || (order.userId !== session.user.id && session.user.role !== "ADMIN")) return { error: NextResponse.json({ error: "Trade not found" }, { status: 404 }) };
+  const isAdmin = session.user.role === "ADMIN";
+  const order = await withScope(session, (tx) => tx.order.findUnique({ where: { id: orderId }, select: { id: true, referenceId: true, userId: true, giftCardBrand: true, cryptoAsset: true, totalValue: true, status: true, resultDescription: true, resolvedAt: true } }));
+  if (!order || (order.userId !== session.user.id && !isAdmin)) return { error: NextResponse.json({ error: "Trade not found" }, { status: 404 }) };
   return { session, order };
 }
 
@@ -26,12 +27,12 @@ export async function GET(_request: Request, context: RouteContext<"/api/trades/
   if (limited) return limited;
   // Keep the polling response bounded as a trade room grows. The client only
   // needs the most recent conversation when it refreshes.
-  const messages = (await prisma.tradeMessage.findMany({
+  const messages = (await withScope(permitted.session!, (tx) => tx.tradeMessage.findMany({
     where: { orderId },
     include: { sender: { select: { username: true, legalName: true, nameDisplay: true, role: true } } },
     orderBy: { createdAt: "desc" },
     take: 100,
-  })).reverse();
+  }))).reverse();
   const visibleMessages = messages.map(({ sender, ...message }) => ({
     ...message,
     isOwn: message.senderId === permitted.session!.user.id,
@@ -58,7 +59,7 @@ export async function POST(request: Request, context: RouteContext<"/api/trades/
   if (permitted.order!.status === "COMPLETED") {
     return NextResponse.json({ error: "This successful trade is closed. No further action is needed." }, { status: 409 });
   }
-  const saved = await prisma.tradeMessage.create({
+  const saved = await withScope(permitted.session!, (tx) => tx.tradeMessage.create({
     data: {
       orderId,
       senderId: permitted.session!.user.id,
@@ -66,7 +67,7 @@ export async function POST(request: Request, context: RouteContext<"/api/trades/
       ...(attachedImage ? { imageData: attachedImage } : {}),
     },
     include: { sender: { select: { username: true, legalName: true, nameDisplay: true, role: true } } },
-  });
+  }));
 
   if (permitted.session!.user.role !== "ADMIN") {
     void notifyAdminOfTradeMessage({

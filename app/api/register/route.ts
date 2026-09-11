@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
+import { withAdminScope } from "@/lib/db-context";
 import { getClientIp, rateLimit, tooManyRequestsResponse } from "@/lib/rate-limit";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -110,7 +111,9 @@ export async function POST(request: Request) {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    await prisma.user.create({
+    // No signed-in user exists yet to scope this to — creating an account
+    // (and its wallet) is a bootstrap operation, not access to anyone's data.
+    await withAdminScope((tx) => tx.user.create({
       data: {
         email,
         username,
@@ -125,7 +128,7 @@ export async function POST(request: Request) {
           create: { email, source: "signup" },
         },
       },
-    });
+    }));
 
     return NextResponse.json({ message: "Account created." }, { status: 201 });
   } catch (error) {

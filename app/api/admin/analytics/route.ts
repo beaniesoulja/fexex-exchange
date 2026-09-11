@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withAdminScope } from "@/lib/db-context";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 const ONLINE_WINDOW_MINUTES = 5;
@@ -33,43 +33,43 @@ export async function GET() {
       todayTrades,
       pendingGiftCardTrades,
       pendingCryptoTrades,
-    ] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { lastActiveAt: { gte: onlineSince } } }),
-      prisma.order.count(),
-      prisma.order.count({ where: { status: "PENDING" } }),
-      prisma.order.count({ where: { status: "COMPLETED" } }),
-      prisma.order.count({ where: { status: "REJECTED" } }),
-      prisma.user.findMany({
+    ] = await withAdminScope((tx) => Promise.all([
+      tx.user.count(),
+      tx.user.count({ where: { lastActiveAt: { gte: onlineSince } } }),
+      tx.order.count(),
+      tx.order.count({ where: { status: "PENDING" } }),
+      tx.order.count({ where: { status: "COMPLETED" } }),
+      tx.order.count({ where: { status: "REJECTED" } }),
+      tx.user.findMany({
         select: { id: true, email: true, role: true, createdAt: true, lastLoginAt: true, lastActiveAt: true },
         orderBy: [{ lastActiveAt: "desc" }, { createdAt: "desc" }],
         take: 100,
       }),
-      prisma.userActivity.findMany({
+      tx.userActivity.findMany({
         take: 100,
         orderBy: { createdAt: "desc" },
         include: { user: { select: { email: true } } },
       }),
-      prisma.profileAudit.findMany({
+      tx.profileAudit.findMany({
         take: 100,
         orderBy: { createdAt: "desc" },
         include: { user: { select: { email: true } } },
       }),
-      prisma.order.groupBy({
+      tx.order.groupBy({
         by: ["userId"],
         _count: { _all: true },
         _sum: { totalValue: true },
         orderBy: { _sum: { totalValue: "desc" } },
         take: 100,
       }),
-      prisma.order.aggregate({
+      tx.order.aggregate({
         where: { createdAt: { gte: startOfToday } },
         _count: { _all: true },
         _sum: { totalValue: true },
       }),
-      prisma.order.count({ where: { status: "PENDING", type: "SELL_GIFTCARD" } }),
-      prisma.order.count({ where: { status: "PENDING", type: "SELL_CRYPTO" } }),
-    ]);
+      tx.order.count({ where: { status: "PENDING", type: "SELL_GIFTCARD" } }),
+      tx.order.count({ where: { status: "PENDING", type: "SELL_CRYPTO" } }),
+    ]));
 
     const totalsByUserId = new Map(userTradeTotals.map((total) => [total.userId, total]));
     const usersWithStats = users.map((user) => {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withAdminScope, withUserScope } from "@/lib/db-context";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET(_request: Request, context: RouteContext<"/api/trades/[orderId]/receipt">) {
@@ -11,12 +11,12 @@ export async function GET(_request: Request, context: RouteContext<"/api/trades/
   const limited = await enforceRateLimit(`receipt-get:${session.user.id}`, RATE_LIMITS.authedReadFast);
   if (limited) return limited;
 
+  const isAdmin = session.user.role === "ADMIN";
   const { orderId } = await context.params;
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: { user: { select: { email: true, username: true } } },
-  });
-  if (!order || (order.userId !== session.user.id && session.user.role !== "ADMIN")) {
+  const order = isAdmin
+    ? await withAdminScope((tx) => tx.order.findUnique({ where: { id: orderId }, include: { user: { select: { email: true, username: true } } } }))
+    : await withUserScope(session.user.id, (tx) => tx.order.findUnique({ where: { id: orderId }, include: { user: { select: { email: true, username: true } } } }));
+  if (!order || (order.userId !== session.user.id && !isAdmin)) {
     return NextResponse.json({ error: "Trade receipt not found." }, { status: 404 });
   }
 

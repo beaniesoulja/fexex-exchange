@@ -42,6 +42,8 @@ export async function POST(request: Request) {
 
     const totalValue = Math.round(usdValue * rate.nairaPayoutPerUsd);
     const order = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_user_id', ${user.id}, true), set_config('app.is_admin', 'false', true)`;
+
       const savedOrder = await tx.order.create({
         data: {
           userId: user.id,

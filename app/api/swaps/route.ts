@@ -53,7 +53,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "This amount is too small to convert to Naira." }, { status: 400 });
     }
 
-    const swap = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_user_id', ${session.user.id}, true), set_config('app.is_admin', 'false', true)`;
+
       // This conditional update prevents a balance from being spent twice.
       const debit = await tx.wallet.updateMany({
         where: {
@@ -88,15 +90,15 @@ export async function POST(req: Request) {
         },
       });
 
-      return swap;
+      const wallet = await tx.wallet.findUnique({ where: { userId: session.user.id } });
+      return { swap, wallet };
     });
 
-    if (!swap) {
+    if (!result) {
       return NextResponse.json({ error: "You do not have enough USDT to complete this swap." }, { status: 400 });
     }
 
-    const wallet = await prisma.wallet.findUnique({ where: { userId: session.user.id } });
-    return NextResponse.json({ message: "USDT swapped to Naira.", swap, wallet }, { status: 201 });
+    return NextResponse.json({ message: "USDT swapped to Naira.", swap: result.swap, wallet: result.wallet }, { status: 201 });
   } catch (error) {
     console.error("Failed to swap USDT to Naira:", error);
     return NextResponse.json({ error: "We could not complete the swap. Please try again." }, { status: 500 });

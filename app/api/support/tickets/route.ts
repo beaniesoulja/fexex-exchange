@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withUserScope } from "@/lib/db-context";
 import { validateImageDataUrl } from "@/lib/image-upload";
 import { DAILY_QUOTAS, enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -11,11 +11,11 @@ export async function GET() {
   const limited = await enforceRateLimit(`tickets-get:${session.user.id}`, RATE_LIMITS.authedReadModerate);
   if (limited) return limited;
 
-  const tickets = await prisma.supportTicket.findMany({
+  const tickets = await withUserScope(session.user.id, (tx) => tx.supportTicket.findMany({
     where: { userId: session.user.id },
     orderBy: { updatedAt: "desc" },
     include: { messages: { orderBy: { createdAt: "desc" }, take: 1 } },
-  });
+  }));
 
   return NextResponse.json(tickets.map(({ messages, ...ticket }) => ({
     ...ticket,
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   if (!body && !imageData) return NextResponse.json({ error: "Describe your issue or attach an image." }, { status: 400 });
   if (body.length > 1000) return NextResponse.json({ error: "Messages can be up to 1000 characters." }, { status: 400 });
 
-  const ticket = await prisma.supportTicket.create({
+  const ticket = await withUserScope(session.user.id, (tx) => tx.supportTicket.create({
     data: {
       userId: session.user.id,
       subject,
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       },
     },
     include: { messages: true },
-  });
+  }));
 
   return NextResponse.json(ticket, { status: 201 });
 }

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { NIGERIAN_BANKS } from '@/lib/nigerian-banks';
 import { prisma } from '@/lib/prisma';
 import { validateImageDataUrl } from '@/lib/image-upload';
+import { withUserScope } from '@/lib/db-context';
 import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const MINIMUM_AGE_YEARS = 18;
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
     }
 
     // Dashboard consumers need the wallet, orders, and swaps in addition to the account.
-    const userData = await prisma.user.findUnique({
+    const userData = await withUserScope(session.user.id, (tx) => tx.user.findUnique({
       where: { id: session.user.id },
       include: {
         wallet: true,
@@ -75,7 +76,7 @@ export async function GET(request: Request) {
           take: 5,
         },
       }
-    });
+    }));
 
     if (!userData) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -186,8 +187,9 @@ export async function POST(req: Request) {
 
       const emailChanged = email !== current.email;
       const avatarStatus = current.avatarData ? "avatar uploaded" : "no avatar uploaded";
-      await prisma.$transaction([
-        prisma.user.update({
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_user_id', ${current.id}, true), set_config('app.is_admin', 'false', true)`;
+        await tx.user.update({
           where: { id: current.id },
           data: {
             username, email, phoneCountryCode, phoneNumber, bio, nameDisplay, preferredCurrency, timezone,
@@ -195,15 +197,17 @@ export async function POST(req: Request) {
             ...(dateOfBirthChanged && current.dateOfBirth ? { dateOfBirthChangedAt: new Date() } : {}),
             ...(usernameChanged && current.username ? { usernameChangedAt: new Date() } : {}),
           },
-        }),
-        ...(emailChanged ? [prisma.profileAudit.create({
-          data: {
-            userId: current.id,
-            type: "EMAIL_CHANGED",
-            details: `Email changed by ${current.legalName ?? "User"}; previous email: ${current.email}; new email: ${email}; phone: ${phoneCountryCode} ${phoneNumber}; ${avatarStatus}.`,
-          },
-        })] : []),
-      ]);
+        });
+        if (emailChanged) {
+          await tx.profileAudit.create({
+            data: {
+              userId: current.id,
+              type: "EMAIL_CHANGED",
+              details: `Email changed by ${current.legalName ?? "User"}; previous email: ${current.email}; new email: ${email}; phone: ${phoneCountryCode} ${phoneNumber}; ${avatarStatus}.`,
+            },
+          });
+        }
+      });
       return NextResponse.json({ message: "Profile saved.", username, usernameChangedAt: usernameChanged && current.username ? new Date() : current.usernameChangedAt, email, phoneCountryCode, phoneNumber, bio, nameDisplay, preferredCurrency, timezone, dateOfBirth: dateOfBirth ?? current.dateOfBirth, dateOfBirthChangedAt: dateOfBirthChanged && current.dateOfBirth ? new Date() : current.dateOfBirthChangedAt });
     }
 

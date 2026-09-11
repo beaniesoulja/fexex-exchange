@@ -2,6 +2,7 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAdminScope } from '@/lib/db-context';
 import { enforceRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -66,39 +67,39 @@ export async function POST(req: Request) {
     const providerReference = payout_id === undefined ? null : String(payout_id);
 
     if (providerReference && payout_status === 'finished') {
-      const payout = await prisma.payout.findFirst({ where: { providerReference } });
+      const payout = await withAdminScope((tx) => tx.payout.findFirst({ where: { providerReference } }));
       if (!payout) {
         console.warn(`Received a completed payout IPN for an unknown reference: ${providerReference}`);
       } else {
-        await prisma.$transaction([
-          prisma.payout.update({
+        await withAdminScope(async (tx) => {
+          await tx.payout.update({
             where: { id: payout.id },
             data: { status: 'COMPLETED', providerResponse: JSON.stringify(body) },
-          }),
-          prisma.order.update({
+          });
+          await tx.order.update({
             where: { id: payout.orderId },
             data: { status: 'COMPLETED' },
-          }),
-        ]);
+          });
+        });
         console.log(`NOWPayments payout ${providerReference} completed: ${actually_sent ?? 'unknown'} ${send_currency ?? ''}`);
       }
     }
 
     if (providerReference && payout_status === 'failed') {
-      const payout = await prisma.payout.findFirst({ where: { providerReference } });
+      const payout = await withAdminScope((tx) => tx.payout.findFirst({ where: { providerReference } }));
       if (!payout) {
         console.warn(`Received a failed payout IPN for an unknown reference: ${providerReference}`);
       } else {
-        await prisma.$transaction([
-          prisma.payout.update({
+        await withAdminScope(async (tx) => {
+          await tx.payout.update({
             where: { id: payout.id },
             data: { status: 'FAILED', providerResponse: JSON.stringify(body) },
-          }),
-          prisma.order.update({
+          });
+          await tx.order.update({
             where: { id: payout.orderId },
             data: { status: 'PENDING' },
-          }),
-        ]);
+          });
+        });
         console.error(`NOWPayments payout ${providerReference} failed for order ${order_id ?? payout.orderId}.`);
       }
     }

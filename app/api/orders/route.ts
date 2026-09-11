@@ -79,6 +79,8 @@ export async function POST(req: Request) {
 
     // Save the order and an activity record together, without recording card codes or PINs in the activity log.
     const order = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_user_id', ${user.id}, true), set_config('app.is_admin', 'false', true)`;
+
       const savedOrder = await tx.order.create({
         data: {
           userId: user.id,

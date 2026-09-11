@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withUserScope } from "@/lib/db-context";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET() {
@@ -13,7 +13,7 @@ export async function GET() {
   const limited = await enforceRateLimit(`user-trades:${session.user.id}`, RATE_LIMITS.authedReadFast);
   if (limited) return limited;
 
-  const trades = await prisma.order.findMany({
+  const trades = await withUserScope(session.user.id, (tx) => tx.order.findMany({
     where: { userId: session.user.id, status: { in: ["PENDING", "PROCESSING"] } },
     select: {
       id: true,
@@ -29,7 +29,7 @@ export async function GET() {
     },
     orderBy: { createdAt: "desc" },
     take: 100,
-  });
+  }));
 
   return NextResponse.json({ trades });
 }

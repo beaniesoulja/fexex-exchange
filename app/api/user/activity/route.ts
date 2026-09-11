@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withUserScope } from "@/lib/db-context";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET() {
@@ -14,12 +15,12 @@ export async function GET() {
   if (limited) return limited;
 
   try {
-    const activities = await prisma.userActivity.findMany({
+    const activities = await withUserScope(session.user.id, (tx) => tx.userActivity.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
       take: 50,
       select: { id: true, type: true, details: true, createdAt: true },
-    });
+    }));
     return NextResponse.json({ activities });
   } catch (error) {
     console.error("Failed to fetch user activity:", error);

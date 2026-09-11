@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import type { Role } from "@prisma/client";
 import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { withUserScope } from "@/lib/db-context";
 import { rateLimit } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import bcrypt from "bcryptjs";
@@ -130,10 +131,10 @@ export const authOptions: NextAuthOptions = {
           data: { username, lastLoginAt: now, lastActiveAt: now, ...(upgradedPasswordHash ? { passwordHash: upgradedPasswordHash } : {}) },
         });
 
-        await Promise.all([
-          prisma.userActivity.create({ data: { userId: user.id, type: "LOGIN" } }),
-          prisma.loginSession.create({ data: { userId: user.id, browser, os, ipAddress } }),
-        ]).catch((error) => {
+        await withUserScope(user.id, async (tx) => {
+          await tx.userActivity.create({ data: { userId: user.id, type: "LOGIN" } });
+          await tx.loginSession.create({ data: { userId: user.id, browser, os, ipAddress } });
+        }).catch((error) => {
           console.error("Login telemetry could not be recorded:", error);
         });
 
