@@ -234,6 +234,9 @@ model Order {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId, status, createdAt])
 }
 
 model SupportTicket {
