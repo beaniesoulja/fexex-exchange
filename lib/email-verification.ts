@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 
+import { renderEmailLayout } from "@/lib/email-templates";
+
 export const EMAIL_VERIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export function createEmailVerificationToken() {
@@ -19,6 +21,15 @@ export async function sendVerificationEmail(email: string, verifyUrl: string) {
     throw new Error("Verification email delivery is not configured.");
   }
 
+  const html = renderEmailLayout({
+    preheader: "Confirm your email address to finish activating your FEXEX account.",
+    heading: "Verify your email address",
+    bodyHtml: "Welcome to FEXEX. Confirm this is your email address to finish activating your account and start trading.",
+    ctaLabel: "Verify email address",
+    ctaUrl: verifyUrl,
+    footnoteHtml: "This link expires in 24 hours. If you did not create a FEXEX account, you can safely ignore this email.",
+  });
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -29,7 +40,7 @@ export async function sendVerificationEmail(email: string, verifyUrl: string) {
       from,
       to: [email],
       subject: "Verify your FEXEX email address",
-      html: `<p>Welcome to FEXEX. Confirm this is your email address to finish activating your account.</p><p><a href="${verifyUrl}">Verify email</a></p><p>This link expires in 24 hours. If you did not create a FEXEX account, you can safely ignore this email.</p>`,
+      html,
     }),
   });
 

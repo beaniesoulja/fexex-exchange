@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 
+import { renderEmailLayout } from "@/lib/email-templates";
+
 export const PASSWORD_RESET_WINDOW_MS = 60 * 60 * 1000;
 
 export function createPasswordResetToken() {
@@ -19,6 +21,15 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
     throw new Error("Password reset email delivery is not configured.");
   }
 
+  const html = renderEmailLayout({
+    preheader: "Reset your FEXEX password. This link expires in one hour.",
+    heading: "Reset your password",
+    bodyHtml: "We received a request to reset the password for this FEXEX account. Choose a new password to regain access.",
+    ctaLabel: "Reset password",
+    ctaUrl: resetUrl,
+    footnoteHtml: "This link expires in one hour and can only be used once. If you did not request this, no action is needed, your password will not change.",
+  });
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -29,7 +40,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
       from,
       to: [email],
       subject: "Reset your FEXEX password",
-      html: `<p>We received a request to reset your FEXEX password.</p><p><a href="${resetUrl}">Reset password</a></p><p>This link expires in one hour. If you did not request this, you can safely ignore this email.</p>`,
+      html,
     }),
   });
 
