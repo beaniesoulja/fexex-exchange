@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { withAdminScope } from "@/lib/db-context";
 import { createEmailVerificationToken, EMAIL_VERIFICATION_WINDOW_MS, sendVerificationEmail } from "@/lib/email-verification";
 import { getClientIp, rateLimit, tooManyRequestsResponse } from "@/lib/rate-limit";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const isLocalDevelopment = process.env.NODE_ENV !== "production";
 
@@ -34,12 +35,16 @@ export async function POST(request: Request) {
     return tooManyRequestsResponse(retryAfterSeconds, "Too many signup attempts from this connection. Please try again later.");
   }
 
-  let body: { username?: unknown; legalName?: unknown; dateOfBirth?: unknown; phoneCountryCode?: unknown; phoneNumber?: unknown; email?: unknown; password?: unknown; agreedToTerms?: unknown };
+  let body: { username?: unknown; legalName?: unknown; dateOfBirth?: unknown; phoneCountryCode?: unknown; phoneNumber?: unknown; email?: unknown; password?: unknown; agreedToTerms?: unknown; captchaToken?: unknown };
 
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Please provide a valid registration form." }, { status: 400 });
+  }
+
+  if (!(await verifyTurnstileToken(body.captchaToken, "registration"))) {
+    return NextResponse.json({ error: "Please complete the bot protection check." }, { status: 400 });
   }
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";

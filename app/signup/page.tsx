@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { Turnstile } from "@/components/turnstile";
+
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "error";
 
 export default function SignupPage() {
@@ -26,6 +28,8 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [createdAccount, setCreatedAccount] = useState<{ email: string; password: string } | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileEnabled = process.env.NODE_ENV === "production" && Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const phoneCodeWasChanged = useRef(false);
 
   useEffect(() => {
@@ -115,13 +119,18 @@ export default function SignupPage() {
       return;
     }
 
+    if (turnstileEnabled && !turnstileToken) {
+      setError("Please complete the bot protection check.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, legalName, dateOfBirth, phoneCountryCode, phoneNumber, email, password, agreedToTerms }),
+        body: JSON.stringify({ username, legalName, dateOfBirth, phoneCountryCode, phoneNumber, email, password, agreedToTerms, captchaToken: turnstileToken }),
       });
       const data = await response.json();
 
@@ -225,9 +234,11 @@ export default function SignupPage() {
             <span>I agree to the FEXEX <Link href="/terms" target="_blank" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Terms of Use</Link> and <Link href="/privacy" target="_blank" className="font-semibold text-[#c6f65c] hover:text-[#d9ff86]">Privacy Policy</Link>.</span>
           </label>
 
+          <Turnstile action="registration" onTokenChange={setTurnstileToken} />
+
           {error && <p role="alert" className="rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
 
-          <button type="submit" disabled={loading || !agreedToTerms} className="w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100 disabled:opacity-60">
+          <button type="submit" disabled={loading || !agreedToTerms || (turnstileEnabled && !turnstileToken)} className="w-full rounded-xl bg-[#c6f65c] px-4 py-3 font-bold text-[#161818] transition hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-[#d9ff86] disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100 disabled:opacity-60">
             {loading ? "Creating account..." : "Create account →"}
           </button>
           </form>

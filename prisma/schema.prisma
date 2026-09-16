@@ -228,6 +228,7 @@ model Order {
   payoutBankAccountNumber String?
   resultDescription String?
   resolvedAt DateTime?
+  reviewedById String?
 
   payout Payout?
   tradeMessages TradeMessage[]

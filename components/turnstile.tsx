@@ -20,7 +20,7 @@ declare global {
 }
 
 interface TurnstileProps {
-  action: "login" | "password_reset";
+  action: "login" | "password_reset" | "registration";
   onTokenChange: (token: string | null) => void;
 }
 

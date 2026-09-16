@@ -95,6 +95,7 @@ export async function PATCH(req: Request) {
           ...(isSuccessful ? { amount: approvedAmount, totalValue: approvedTotalValue } : {}),
           resultDescription: isSuccessful ? (isPartial ? resultDescription : null) : resultDescription,
           resolvedAt: new Date(),
+          reviewedById: session.user.id,
         },
       }));
       if (result.count !== 1) return NextResponse.json({ error: "This order has already been processed." }, { status: 409 });
@@ -121,7 +122,7 @@ export async function PATCH(req: Request) {
       if (order.type === 'SELL_CRYPTO') {
         const approvedOrder = await withAdminScope((tx) => tx.order.updateMany({
           where: { id: orderId, status: 'PENDING' },
-          data: { status: 'COMPLETED', resultDescription: null, resolvedAt: new Date() },
+          data: { status: 'COMPLETED', resultDescription: null, resolvedAt: new Date(), reviewedById: session.user.id },
         }));
         if (approvedOrder.count !== 1) {
           return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });
@@ -151,7 +152,7 @@ export async function PATCH(req: Request) {
       // Claim the order before calling the provider so it cannot be approved twice.
       const claimedOrder = await withAdminScope((tx) => tx.order.updateMany({
         where: { id: orderId, status: 'PENDING' },
-        data: { status: 'PROCESSING' },
+        data: { status: 'PROCESSING', reviewedById: session.user.id },
       }));
       if (claimedOrder.count !== 1) {
         return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });
@@ -198,7 +199,7 @@ export async function PATCH(req: Request) {
     if (action === 'REJECT') {
       const rejectedOrder = await withAdminScope((tx) => tx.order.updateMany({
         where: { id: orderId, status: 'PENDING' },
-        data: { status: 'REJECTED', resultDescription, resolvedAt: new Date() },
+        data: { status: 'REJECTED', resultDescription, resolvedAt: new Date(), reviewedById: session.user.id },
       }));
       if (rejectedOrder.count !== 1) {
         return NextResponse.json({ error: 'This order has already been processed.' }, { status: 409 });

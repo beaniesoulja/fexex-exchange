@@ -9,7 +9,7 @@ export function isTurnstileEnabled() {
   return process.env.NODE_ENV === "production" && Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && process.env.TURNSTILE_SECRET_KEY);
 }
 
-export async function verifyTurnstileToken(token: unknown, expectedAction: "login" | "password_reset") {
+export async function verifyTurnstileToken(token: unknown, expectedAction: "login" | "password_reset" | "registration") {
   if (!isTurnstileEnabled()) return true;
 
   const secretKey = process.env.TURNSTILE_SECRET_KEY ?? "";
