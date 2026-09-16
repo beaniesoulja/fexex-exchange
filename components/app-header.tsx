@@ -30,7 +30,7 @@ function HeaderLink({ href, icon, children, active }: { href: string; icon: Icon
 
 export function AppHeader({ username, avatarData }: { username?: string; avatarData?: string }) {
   const pathname = usePathname();
-  const [openMenu, setOpenMenu] = useState<"trade" | "support" | null>(null);
+  const [openMenu, setOpenMenu] = useState<"support" | null>(null);
   const closeMenu = () => setOpenMenu(null);
 
   return (
@@ -46,17 +46,7 @@ export function AppHeader({ username, avatarData }: { username?: string; avatarD
             <Icon name="home" />
           </Link>
 
-          <div className="relative shrink-0" onMouseEnter={() => setOpenMenu("trade")} onMouseLeave={() => setOpenMenu((current) => current === "trade" ? null : current)}>
-            <button type="button" onClick={() => setOpenMenu("trade")} onFocus={() => setOpenMenu("trade")} aria-expanded={openMenu === "trade"} aria-controls="trade-menu" className={`flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold transition ${pathname === "/trade" ? "bg-[#c6f65c] text-[#161818]" : "text-[#1d2220] hover:bg-[#eff1ed]"}`}>
-              <Icon name="trade" />
-              <span className="hidden sm:inline">Trade</span>
-              <Icon name="chevron" className={`hidden h-4 w-4 transition sm:block ${openMenu === "trade" ? "rotate-180" : ""}`} />
-            </button>
-            {openMenu === "trade" && <div id="trade-menu" className="absolute left-0 top-full z-50 w-48 overflow-hidden rounded-xl border border-[#dce0da] bg-white p-1.5 shadow-xl shadow-black/10">
-              <Link href="/trade" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-semibold transition hover:bg-[#eff1ed]">Sell Giftcard</Link>
-              <Link href="/trade?type=crypto" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-semibold transition hover:bg-[#eff1ed]">Sell Crypto</Link>
-            </div>}
-          </div>
+          <HeaderLink href="/trade" icon="trade" active={pathname === "/trade"}>Trade</HeaderLink>
 
           <HeaderLink href="/wallet" icon="wallet" active={pathname === "/wallet"}>Wallet</HeaderLink>
           <HeaderLink href="/trades" icon="pending" active={pathname === "/trades"}>Pending</HeaderLink>

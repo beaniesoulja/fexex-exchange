@@ -8,6 +8,7 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { AppHeader } from "@/components/app-header";
 import { formatNaira } from "@/lib/currency";
+import { CRYPTO_TRADING_ENABLED } from "@/lib/feature-flags";
 import { stashReceiptPreview } from "@/lib/receipt-cache";
 
 interface CryptoOption {
@@ -40,6 +41,10 @@ export default function CryptoTradePage() {
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
   }, [status, router]);
+
+  useEffect(() => {
+    if (!CRYPTO_TRADING_ENABLED) router.replace("/trade");
+  }, [router]);
 
   useEffect(() => {
     if (status !== "authenticated" || !assetParam) return;

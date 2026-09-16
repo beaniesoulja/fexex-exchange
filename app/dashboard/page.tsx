@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { formatNaira, formatUsd } from "@/lib/currency";
+import { CRYPTO_TRADING_ENABLED } from "@/lib/feature-flags";
 import { NIGERIAN_BANKS } from "@/lib/nigerian-banks";
 import { AppHeader } from "@/components/app-header";
 
@@ -165,7 +166,7 @@ function DashboardContent() {
   }, [status]);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
+    if (status !== "authenticated" || !CRYPTO_TRADING_ENABLED) return;
 
     let refreshInFlight = false;
     const refreshCryptoRate = () => {
@@ -278,7 +279,7 @@ function DashboardContent() {
         <div className="fexex-fade-in mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-3xl font-bold tracking-[-0.03em]">{isWalletPage ? "My Wallet" : "My Dashboard"}</h1>
-            <p className="mt-1 text-[#a9afa9]">{isWalletPage ? "Your Naira and crypto holdings, all in one place." : displayUsername ? `Hey @${displayUsername}, your value's ready to move.` : "Your value is ready to move."}</p>
+            <p className="mt-1 text-[#a9afa9]">{isWalletPage ? "Your Naira balance, all in one place." : displayUsername ? `Hey @${displayUsername}, your value's ready to move.` : "Your value is ready to move."}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href="/trades" className="rounded-lg border border-[#c6f65c]/45 bg-[#c6f65c]/10 px-4 py-2 font-semibold text-[#d8ff96] transition hover:-translate-y-0.5 hover:bg-[#c6f65c]/20">Pending trades</Link>
@@ -287,7 +288,7 @@ function DashboardContent() {
         </div>
 
         {/* Wallet Balances */}
-        {isWalletPage && <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {isWalletPage && <div className={`grid grid-cols-1 gap-6 mb-8 ${CRYPTO_TRADING_ENABLED ? "md:grid-cols-2" : ""}`}>
           <div id="settings" className="fexex-pop-in fexex-glow-pulse relative overflow-hidden rounded-2xl bg-[#c6f65c] p-6 text-[#161818] shadow-lg shadow-black/30">
             <div className="relative mb-1 flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-[#3c4c1c]">{preferredCurrency === "USD" ? "Naira balance (USD view)" : "Naira balance"}</p>
@@ -364,7 +365,7 @@ function DashboardContent() {
             </Link>
           </div>
           
-          <div id="crypto-balance" className="fexex-pop-in relative scroll-mt-4 overflow-hidden rounded-2xl border border-[#bfe3ff]/25 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30" style={{ animationDelay: "80ms" }}>
+          {CRYPTO_TRADING_ENABLED && <div id="crypto-balance" className="fexex-pop-in relative scroll-mt-4 overflow-hidden rounded-2xl border border-[#bfe3ff]/25 bg-[#202323] p-6 text-[#f4f3ee] shadow-lg shadow-black/30" style={{ animationDelay: "80ms" }}>
             <span aria-hidden="true" className="pointer-events-none absolute -right-4 -top-6 text-7xl opacity-10">◈</span>
             <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#bfe3ff]" />
             <div className="relative mb-1 flex items-center justify-between gap-3">
@@ -407,7 +408,7 @@ function DashboardContent() {
             )}
             {swapMessage && <p role="status" className="mt-3 text-sm text-[#bfe3ff]">{swapMessage}</p>}
             {swaps?.[0] && <p className="mt-4 text-xs text-[#a9afa9]">Last swap: {swaps[0].cryptoAmount} {swaps[0].asset} → {formatNaira(swaps[0].nairaAmount)}.</p>}
-          </div>
+          </div>}
         </div>}
 
         {/* Recent Orders */}

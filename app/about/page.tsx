@@ -17,7 +17,7 @@ const values = [
     icon: "H",
     title: "Highest Rates",
     summary: "Some of the best rates in the market.",
-    detail: "We keep our gift card and crypto rates competitive so you get the most Naira for what you're trading, with no lowball offers and no hidden cuts.",
+    detail: "We keep our gift card rates competitive so you get the most Naira for what you're trading, with no lowball offers and no hidden cuts.",
   },
   {
     icon: "Q",
@@ -29,7 +29,7 @@ const values = [
     icon: "U",
     title: "User-Friendly Interface",
     summary: "Simple, hassle-free trading.",
-    detail: "Every gift card and crypto asset gets its own dedicated trade page, so you always know exactly what to enter and what happens next.",
+    detail: "Every gift card gets its own dedicated trade page, so you always know exactly what to enter and what happens next.",
   },
   {
     icon: "C",

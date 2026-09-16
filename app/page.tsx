@@ -4,23 +4,22 @@ import Link from "next/link";
 import { useState } from "react";
 import { giftCards } from "@/lib/gift-cards";
 
-const tickerItems = ["Amazon", "Apple", "Steam", "Google Play", "Xbox", "Razer Gold", "Sephora", "USDT", "Bitcoin"];
+const tickerItems = ["Amazon", "Apple", "Steam", "Google Play", "Xbox", "Razer Gold", "Sephora"];
 
 const stats = [
   { value: "25+", label: "Gift cards supported" },
-  { value: "10+", label: "Crypto assets supported" },
   { value: "100%", label: "Trades reviewed by a person" },
   { value: "₦", label: "Every rate shown up front" },
 ];
 
 const steps = [
-  { number: "01", title: "Pick what you want to sell", copy: "Choose a gift card or crypto asset and see the route made for it." },
+  { number: "01", title: "Pick what you want to sell", copy: "Choose a gift card and see the route made for it." },
   { number: "02", title: "Enter the details", copy: "Add your value and the information required for that specific trade." },
   { number: "03", title: "Track your next move", copy: "Your dashboard keeps your trade history and payout progress in one place." },
 ];
 
 const faqs = [
-  { question: "What can I trade on FEXEX?", answer: "FEXEX supports the gift cards and crypto assets currently available in the Trade area. Available options and rates are managed by the FEXEX team." },
+  { question: "What can I trade on FEXEX?", answer: "FEXEX supports the gift cards currently available in the Trade area. Available options and rates are managed by the FEXEX team." },
   { question: "Can I see the rate before I start?", answer: "Yes. Use the Naira rate calculator to check current gift-card rates before choosing a trade." },
   { question: "Do I need an account?", answer: "Create a FEXEX account to submit and follow a trade from your dashboard." },
 ];
@@ -53,7 +52,7 @@ export default function Home() {
           <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-one opacity-60" />
           <p className="relative mb-6 inline-flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.22em] text-[#a9afa9]"><span className="h-px w-6 bg-[#c6f65c]" />Value, but make it move</p>
           <h1 className="relative max-w-2xl text-5xl font-semibold leading-[1.02] tracking-[-0.06em] sm:text-6xl md:text-[4.75rem]">Your value has a <span className="fexex-serif text-[#bfe3ff]">next life.</span></h1>
-          <p className="relative mt-7 max-w-lg text-base leading-7 text-[#c8ccc7] sm:text-lg sm:leading-8">Sell supported gift cards and crypto through a trade flow that feels clear from the first click to your next move.</p>
+          <p className="relative mt-7 max-w-lg text-base leading-7 text-[#c8ccc7] sm:text-lg sm:leading-8">Sell supported gift cards through a trade flow that feels clear from the first click to your next move.</p>
           <div className="relative mt-9 flex flex-wrap gap-3">
             <Link href="/signup" className="rounded-full bg-[#c6f65c] px-6 py-3.5 text-sm font-bold text-[#161818] transition hover:bg-[#d9ff86]">Start a trade <span aria-hidden="true">→</span></Link>
             <Link href="/giftcard-calculator" className="rounded-full border border-white/15 px-6 py-3.5 text-sm font-semibold text-[#f4f3ee] transition hover:border-[#bfe3ff]/60 hover:text-[#bfe3ff]">Check Naira rates</Link>
@@ -73,9 +72,8 @@ export default function Home() {
           <div aria-hidden="true" className="fexex-hero-orb fexex-hero-orb-two opacity-50" />
           <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#1c1f1f] shadow-[0_40px_100px_rgba(0,0,0,0.45)]">
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 text-xs text-[#777a75]"><span className="inline-flex items-center gap-2 font-semibold tracking-wide text-[#a9afa9]"><span className="h-1.5 w-1.5 rounded-full bg-[#c6f65c]" /> FEXEX TRADE DESK</span><span>Live experience</span></div>
-            <div className="grid gap-px bg-white/10 sm:grid-cols-2">
+            <div className="grid gap-px bg-white/10">
               <Link href="/trade" className="group bg-[#1c1f1f] p-6 transition hover:bg-[#212525]"><div className="flex items-start justify-between"><span className="text-[10px] font-extrabold tracking-[0.16em] text-[#d8ff96]">GIFTCARDS</span><span className="text-lg text-[#c6f65c] transition group-hover:translate-x-1">↗</span></div><p className="mt-14 text-2xl font-bold leading-[1.1] tracking-[-0.04em]">Turn cards into Naira.</p><p className="mt-3 text-xs leading-5 text-[#a9afa9]">Choose a card, a sub-category, and its value.</p></Link>
-              <Link href="/trade?type=crypto" className="group bg-[#1c1f1f] p-6 transition hover:bg-[#212525]"><div className="flex items-start justify-between"><span className="text-[10px] font-extrabold tracking-[0.16em] text-[#dbf1ff]">CRYPTO</span><span className="text-lg text-[#bfe3ff] transition group-hover:translate-x-1">↗</span></div><p className="mt-14 text-2xl font-bold leading-[1.1] tracking-[-0.04em]">Make a clean crypto move.</p><p className="mt-3 text-xs leading-5 text-[#a9afa9]">Select your asset and submit the amount to sell.</p></Link>
             </div>
             <div className="flex items-center justify-between gap-2 border-t border-white/10 px-5 py-4 text-xs font-semibold text-[#777a75]">
               {["Pick", "Enter", "Track"].map((label, index) => (
@@ -114,7 +112,7 @@ export default function Home() {
       <section id="how-it-works" className="relative z-10 mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28">
         <div className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-end">
           <div><p className="text-xs font-extrabold tracking-[0.14em] text-[#c6f65c]">HOW FEXEX FLOWS</p><h2 className="mt-4 max-w-sm text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">Less hunting around. More moving forward.</h2></div>
-          <p className="max-w-xl text-sm leading-7 text-[#a9afa9] sm:text-base">We give each card and crypto asset its own route, so the details you need show up when you need them.</p>
+          <p className="max-w-xl text-sm leading-7 text-[#a9afa9] sm:text-base">We give each card its own route, so the details you need show up when you need them.</p>
         </div>
         <ol className="mt-12 divide-y divide-white/10 border-t border-white/10">
           {steps.map((step) => (
