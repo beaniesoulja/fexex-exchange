@@ -4,8 +4,10 @@ import { cryptoAssets } from "@/lib/crypto-assets";
 import { ensurePricingDefaults } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
+import { CRYPTO_TRADING_ENABLED } from "@/lib/feature-flags";
 
 export async function GET(request: Request) {
+  if (!CRYPTO_TRADING_ENABLED) return NextResponse.json({ error: "Crypto trading is currently unavailable." }, { status: 404 });
   const limited = await enforceRateLimit(`crypto-rates:${getClientIp(request)}`, RATE_LIMITS.publicRead);
   if (limited) return limited;
 

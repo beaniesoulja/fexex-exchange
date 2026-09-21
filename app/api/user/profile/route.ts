@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { validateImageDataUrl } from '@/lib/image-upload';
 import { withUserScope } from '@/lib/db-context';
 import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { CRYPTO_TRADING_ENABLED } from "@/lib/feature-flags";
 
 const MINIMUM_AGE_YEARS = 18;
 const USERNAME_CHANGE_COOLDOWN_DAYS = 30;
@@ -227,6 +228,9 @@ export async function POST(req: Request) {
     }
 
     if (walletAddress) {
+      if (!CRYPTO_TRADING_ENABLED) {
+        return NextResponse.json({ error: "Crypto trading is currently unavailable." }, { status: 404 });
+      }
       if (walletAddress.length < 10) {
         return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 });
       }

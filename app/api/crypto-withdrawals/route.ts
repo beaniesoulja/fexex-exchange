@@ -4,8 +4,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DAILY_QUOTAS, enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { CRYPTO_TRADING_ENABLED } from "@/lib/feature-flags";
 
 export async function POST(request: Request) {
+  if (!CRYPTO_TRADING_ENABLED) return NextResponse.json({ error: "Crypto trading is currently unavailable." }, { status: 404 });
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {

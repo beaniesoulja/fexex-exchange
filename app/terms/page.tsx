@@ -14,8 +14,8 @@ const sections = [
     body: "You are responsible for keeping your password and login details confidential and for all activity that happens under your account. Tell us immediately if you suspect unauthorized access to your account.",
   },
   {
-    title: "4. Trading gift cards and crypto",
-    body: "FEXEX lets you sell supported gift cards and crypto assets for a Naira payout at the rate shown at the time you submit a trade. Every trade is reviewed by an admin before it is marked successful or failed; a trade remains pending until that review is complete. You confirm that any gift card or crypto asset you submit is legitimately yours to sell, and was not obtained fraudulently.",
+    title: "4. Trading gift cards",
+    body: "FEXEX lets you sell supported gift cards for a Naira payout at the rate shown at the time you submit a trade. Every trade is reviewed by an admin before it is marked successful or failed; a trade remains pending until that review is complete. You confirm that any gift card you submit is legitimately yours to sell, and was not obtained fraudulently.",
   },
   {
     title: "5. Rates and payouts",
@@ -23,7 +23,7 @@ const sections = [
   },
   {
     title: "6. Prohibited use",
-    body: "You may not use FEXEX to submit a gift card or crypto asset that is stolen, fraudulently obtained, or that you do not have the right to sell; to attempt to manipulate rates or the review process; or to use the platform for money laundering or any other unlawful purpose. We may decline, delay, or reverse a trade, and may suspend or close an account, where we reasonably suspect any of the above.",
+    body: "You may not use FEXEX to submit a gift card that is stolen, fraudulently obtained, or that you do not have the right to sell; to attempt to manipulate rates or the review process; or to use the platform for money laundering or any other unlawful purpose. We may decline, delay, or reverse a trade, and may suspend or close an account, where we reasonably suspect any of the above.",
   },
   {
     title: "7. Fees and taxes",
@@ -35,7 +35,7 @@ const sections = [
   },
   {
     title: "9. No investment advice",
-    body: "Nothing on FEXEX is financial or investment advice. Crypto asset values can be volatile; you trade at your own risk.",
+    body: "Nothing on FEXEX is financial or investment advice. You trade at your own risk.",
   },
   {
     title: "10. Disclaimers and limitation of liability",

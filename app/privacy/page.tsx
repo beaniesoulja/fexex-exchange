@@ -3,15 +3,15 @@ import Link from "next/link";
 const sections = [
   {
     title: "1. Information we collect",
-    body: "When you create a FEXEX account we collect your email address, legal name, date of birth, phone number, and a password (stored as a secure hash, never in plain text). When you submit a trade we collect the details needed to process it, such as the gift card brand, value, and card code, your crypto wallet address, or your bank payout details. We also automatically record device, browser, and IP information, and activity such as logins and trade submissions, to help secure your account and improve the service.",
+    body: "When you create a FEXEX account we collect your email address, legal name, date of birth, phone number, and a password (stored as a secure hash, never in plain text). When you submit a trade we collect the details needed to process it, such as the gift card brand, value, and card code, and your bank payout details. We also automatically record device, browser, and IP information, and activity such as logins and trade submissions, to help secure your account and improve the service.",
   },
   {
     title: "2. How we use your information",
-    body: "We use your information to create and secure your account, process and verify trades, calculate and pay out your Naira or crypto proceeds, communicate with you about your trades and account, prevent fraud and abuse, and meet our legal and regulatory obligations.",
+    body: "We use your information to create and secure your account, process and verify trades, calculate and pay out your Naira proceeds, communicate with you about your trades and account, prevent fraud and abuse, and meet our legal and regulatory obligations.",
   },
   {
     title: "3. How we share your information",
-    body: "We do not sell your personal information. We share it only where necessary: with payment and crypto payout providers to complete a trade, with service providers who help us run FEXEX (such as hosting and communications tools), and with regulators or law enforcement where required by law.",
+    body: "We do not sell your personal information. We share it only where necessary: with payment providers to complete a trade, with service providers who help us run FEXEX (such as hosting and communications tools), and with regulators or law enforcement where required by law.",
   },
   {
     title: "4. Data retention",

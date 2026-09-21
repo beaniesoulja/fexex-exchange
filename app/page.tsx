@@ -7,8 +7,9 @@ import { giftCards } from "@/lib/gift-cards";
 const tickerItems = ["Amazon", "Apple", "Steam", "Google Play", "Xbox", "Razer Gold", "Sephora"];
 
 const stats = [
-  { value: "25+", label: "Gift cards supported" },
+  { value: `${giftCards.length}`, label: "Gift cards supported" },
   { value: "100%", label: "Trades reviewed by a person" },
+  { value: "1:1", label: "Chat with an admin on every trade" },
   { value: "₦", label: "Every rate shown up front" },
 ];
 
@@ -57,15 +58,6 @@ export default function Home() {
             <Link href="/signup" className="rounded-full bg-[#c6f65c] px-6 py-3.5 text-sm font-bold text-[#161818] transition hover:bg-[#d9ff86]">Start a trade <span aria-hidden="true">→</span></Link>
             <Link href="/giftcard-calculator" className="rounded-full border border-white/15 px-6 py-3.5 text-sm font-semibold text-[#f4f3ee] transition hover:border-[#bfe3ff]/60 hover:text-[#bfe3ff]">Check Naira rates</Link>
           </div>
-          <dl className="relative mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-6">
-            {stats.slice(0, 3).map((stat) => (
-              <div key={stat.label}>
-                <dt className="sr-only">{stat.label}</dt>
-                <dd className="text-2xl font-bold tracking-[-0.03em] text-[#c6f65c]">{stat.value}</dd>
-                <p className="mt-1 text-xs leading-4 text-[#777a75]">{stat.label}</p>
-              </div>
-            ))}
-          </dl>
         </div>
 
         <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
@@ -97,13 +89,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-8 border-y border-white/10 py-10 sm:grid-cols-4">
+      <section aria-label="FEXEX at a glance" className="relative z-10 bg-[#f2f3ef] text-[#161818]">
+        <dl className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-10 px-5 py-12 text-center sm:px-8 sm:py-14 lg:grid-cols-4">
           {stats.map((stat) => (
-            <div key={stat.label} className="border-l border-white/10 pl-5 first:border-l-0 first:pl-0 sm:first:border-l sm:first:pl-5">
-              <dt className="sr-only">{stat.label}</dt>
-              <dd className="text-3xl font-bold tracking-[-0.03em] sm:text-4xl">{stat.value}</dd>
-              <p className="mt-2 text-xs leading-5 text-[#a9afa9] sm:text-sm">{stat.label}</p>
+            <div key={stat.label} className="mx-auto max-w-[14rem]">
+              <dd className="text-4xl font-bold tracking-[-0.04em] sm:text-5xl">{stat.value}</dd>
+              <dt className="mt-3 text-sm leading-5 text-[#5b615c]">{stat.label}</dt>
             </div>
           ))}
         </dl>

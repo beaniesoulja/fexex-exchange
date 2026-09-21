@@ -4,12 +4,14 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUsdToNairaRate } from "@/lib/pricing";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { CRYPTO_TRADING_ENABLED } from "@/lib/feature-flags";
 
 const ASSET = "USDT";
 const MINIMUM_SWAP_AMOUNT = 0.01;
 const CRYPTO_PRECISION = 1_000_000;
 
 export async function GET() {
+  if (!CRYPTO_TRADING_ENABLED) return NextResponse.json({ error: "Crypto trading is currently unavailable." }, { status: 404 });
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -28,6 +30,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!CRYPTO_TRADING_ENABLED) return NextResponse.json({ error: "Crypto trading is currently unavailable." }, { status: 404 });
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
